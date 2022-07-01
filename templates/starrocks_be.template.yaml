@@ -1,0 +1,809 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Deploy StarRocks-BE on Amazon Web Services'
+Metadata:
+  LICENSE: Apache License Version 2.0
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Network configuration
+      Parameters:
+      - PrivateSubnetID
+      - StarRocksServerSecurityGroup
+    - Label:
+        default: EC2 configuration
+      Parameters:
+      - KeyPairName
+    - Label:
+        default: Environment configuration
+      Parameters:
+      - LatestAmiId
+      - JDKDownLoadURL
+      - StarRocksDownLoadURL
+    - Label:
+        default: Node type configuration
+      Parameters:
+      - BeNodeInstanceType
+      - BeNodeCount
+    - Label:
+        default: BE configuration
+      Parameters:
+      - SysLogDir
+      - SysLogLevel
+      - VolumeType
+      - VolumeSize
+      - Iops
+    ParameterLabels:
+      PrivateSubnetID:
+        default: Private subnet ID
+      StarRocksServerSecurityGroup:
+        default: StarRocks Server Security Group
+      KeyPairName:
+        default: Key pair name
+      LatestAmiId:
+        default: Reference the latest Amazon Linux AMI in a CloudFormation template
+      JDKDownLoadURL:
+        default: URL of download JDK 1.8
+      StarRocksDownLoadURL:
+        default: URL of StarRocks
+      BeNodeInstanceType:
+        default: Be instance type
+      BeNodeCount:
+        default: Be node count
+      SysLogDir:
+        default: Dir to save be sys log
+      SysLogLevel:
+        default: Sys Log Level
+      VolumeType:
+        default: Volume type of Be nodes
+      VolumeSize:
+        default: Volume size of Be nodes
+      Iops:
+        default: IOPS of Be nodes
+Parameters: 
+  PrivateSubnetID: 
+    Description: The Private Subnet ID that you want to deploy Fe nodes.
+    Type: String
+  StarRocksServerSecurityGroup: 
+    Description: StarRocks Server Security Group.
+    Type: String
+  KeyPairName: 
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Public/private key pairs allow you to securely connect to your instance after it launches.
+  LatestAmiId:
+    Description: Reference the latest Amazon Linux AMI in a CloudFormation template.
+    Type: String
+  JDKDownLoadURL:
+    Description: URL of download JDK 1.8
+    Type: String
+  StarRocksDownLoadURL:
+    Description: URL of StarRocks
+    Type: String
+  BeNodeInstanceType: 
+    Description: Amazon EC2 instance type for the be nodes.
+    Type: String
+    AllowedValues: 
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+  BeNodeCount:
+    Type: Number
+    Description: Number of StarRocks Be
+    AllowedValues: 
+      - 3
+      - 4
+      - 5
+      - 6
+  SysLogDir:
+    Description: Dir to save be log, please to fill in the absolute path
+    Type: String
+  SysLogLevel:
+    Description: Sys Log Level, please select from the drop-down menu
+    Type: String
+    AllowedValues: 
+      - INFO
+      - WARN
+      - ERROR
+      - FATAL
+  VolumeType: 
+    Type: String
+    Description: EBS volume type (data) to be attached to node in GBs [gp2,gp3,st1], one volume for data storage is mounted automatically by CloudFormation stack.
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - st1
+      - io1
+  VolumeSize: 
+    Type: String
+    Description: EBS volume size (data) to be attached to node in GBs.
+    Default: 50
+  Iops: 
+    Type: String
+    Description: IOPS of EBS volume when io1 type is chosen. Otherwise ignored.
+    Default: 1000
+Conditions:
+  UseIops: 
+    Fn::Equals: [!Ref VolumeType,"io1"]
+  3NodesCondition: !Or 
+    - !Equals [!Ref 'BeNodeCount', '3']
+    - !Equals [!Ref 'BeNodeCount', '4']
+    - !Equals [!Ref 'BeNodeCount', '5']
+    - !Equals [!Ref 'BeNodeCount', '6']
+  4NodesCondition: !Or  
+    - !Equals [!Ref 'BeNodeCount', '4']
+    - !Equals [!Ref 'BeNodeCount', '5']
+    - !Equals [!Ref 'BeNodeCount', '6']
+  5NodesCondition: !Or 
+    - !Equals [!Ref 'BeNodeCount', '5'] 
+    - !Equals [!Ref 'BeNodeCount', '6']
+  6NodesCondition: !Equals [!Ref 'BeNodeCount', '6']
+Resources:
+  BeInstance1:
+    Condition: 3NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 1
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance1 --region ${AWS::Region}
+
+          wget ${JDKDownLoadURL} -O java.tar.gz
+          mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf java.tar.gz
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          cd /home/starrocks
+
+          mkdir -p /home/starrocks/tool
+          echo '#!/usr/bin/python' >> /home/starrocks/tool/addBeTool.py
+          echo '# -*- coding: UTF-8 -*-' >> /home/starrocks/tool/addBeTool.py
+          echo 'import MySQLdb' >> /home/starrocks/tool/addBeTool.py
+          echo 'import sys' >> /home/starrocks/tool/addBeTool.py
+          echo 'import time' >> /home/starrocks/tool/addBeTool.py
+          echo 'import os' >> /home/starrocks/tool/addBeTool.py
+          echo 'time.sleep(30)' >> /home/starrocks/tool/addBeTool.py
+          echo 'db = MySQLdb.connect(host = '"'"'127.0.0.1'"'"', user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> /home/starrocks/tool/addBeTool.py
+          echo 'cursor = db.cursor()' >> /home/starrocks/tool/addBeTool.py
+          echo 'for index in range(len(sys.argv)):' >> /home/starrocks/tool/addBeTool.py
+          echo '    if index == 0:' >> /home/starrocks/tool/addBeTool.py
+          echo '        continue' >> /home/starrocks/tool/addBeTool.py
+          echo '    if sys.argv[index] != '"'"'0.0.0.0'"'"':' >> /home/starrocks/tool/addBeTool.py
+          echo '        cursor.execute("ALTER SYSTEM ADD BACKEND '"'"'%s:9050'"'"'"%sys.argv[index])' >> /home/starrocks/tool/addBeTool.py
+          echo 'data = cursor.fetchone()' >> /home/starrocks/tool/addBeTool.py
+          echo 'db.close()' >> /home/starrocks/tool/addBeTool.py
+          chmod +x /home/starrocks/tool/addBeTool.py
+
+          wget ${StarRocksDownLoadURL} -O starrocks.tar.gz
+          mkdir ./StarRocks && tar -zxvf starrocks.tar.gz -C ./StarRocks --strip-components 1
+          rm -rf starrocks.tar.gz
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+
+          cd /home/starrocks/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${SysLogDir} ${SysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks
+          
+          bin/start_be.sh --daemon
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance1 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT10M"
+  BeInstance2:
+    Condition: 3NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 2
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance2 --region ${AWS::Region}
+          
+          wget ${JDKDownLoadURL} -O java.tar.gz
+          mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf java.tar.gz
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          cd /home/starrocks
+
+          mkdir -p /home/starrocks/tool
+          echo '#!/usr/bin/python' >> /home/starrocks/tool/addBeTool.py
+          echo '# -*- coding: UTF-8 -*-' >> /home/starrocks/tool/addBeTool.py
+          echo 'import MySQLdb' >> /home/starrocks/tool/addBeTool.py
+          echo 'import sys' >> /home/starrocks/tool/addBeTool.py
+          echo 'import time' >> /home/starrocks/tool/addBeTool.py
+          echo 'import os' >> /home/starrocks/tool/addBeTool.py
+          echo 'time.sleep(30)' >> /home/starrocks/tool/addBeTool.py
+          echo 'db = MySQLdb.connect(host = '"'"'127.0.0.1'"'"', user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> /home/starrocks/tool/addBeTool.py
+          echo 'cursor = db.cursor()' >> /home/starrocks/tool/addBeTool.py
+          echo 'for index in range(len(sys.argv)):' >> /home/starrocks/tool/addBeTool.py
+          echo '    if index == 0:' >> /home/starrocks/tool/addBeTool.py
+          echo '        continue' >> /home/starrocks/tool/addBeTool.py
+          echo '    if sys.argv[index] != '"'"'0.0.0.0'"'"':' >> /home/starrocks/tool/addBeTool.py
+          echo '        cursor.execute("ALTER SYSTEM ADD BACKEND '"'"'%s:9050'"'"'"%sys.argv[index])' >> /home/starrocks/tool/addBeTool.py
+          echo 'data = cursor.fetchone()' >> /home/starrocks/tool/addBeTool.py
+          echo 'db.close()' >> /home/starrocks/tool/addBeTool.py
+          chmod +x /home/starrocks/tool/addBeTool.py
+
+          wget ${StarRocksDownLoadURL} -O starrocks.tar.gz
+          mkdir ./StarRocks && tar -zxvf starrocks.tar.gz -C ./StarRocks --strip-components 1
+          rm -rf starrocks.tar.gz
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+
+          cd /home/starrocks/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${SysLogDir} ${SysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks
+          
+          bin/start_be.sh --daemon
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance2 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT10M"
+  BeInstance3:
+    Condition: 3NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 3
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance3 --region ${AWS::Region}
+          
+          wget ${JDKDownLoadURL} -O java.tar.gz
+          mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf java.tar.gz
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          cd /home/starrocks
+
+          mkdir -p /home/starrocks/tool
+          echo '#!/usr/bin/python' >> /home/starrocks/tool/addBeTool.py
+          echo '# -*- coding: UTF-8 -*-' >> /home/starrocks/tool/addBeTool.py
+          echo 'import MySQLdb' >> /home/starrocks/tool/addBeTool.py
+          echo 'import sys' >> /home/starrocks/tool/addBeTool.py
+          echo 'import time' >> /home/starrocks/tool/addBeTool.py
+          echo 'import os' >> /home/starrocks/tool/addBeTool.py
+          echo 'time.sleep(30)' >> /home/starrocks/tool/addBeTool.py
+          echo 'db = MySQLdb.connect(host = '"'"'127.0.0.1'"'"', user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> /home/starrocks/tool/addBeTool.py
+          echo 'cursor = db.cursor()' >> /home/starrocks/tool/addBeTool.py
+          echo 'for index in range(len(sys.argv)):' >> /home/starrocks/tool/addBeTool.py
+          echo '    if index == 0:' >> /home/starrocks/tool/addBeTool.py
+          echo '        continue' >> /home/starrocks/tool/addBeTool.py
+          echo '    if sys.argv[index] != '"'"'0.0.0.0'"'"':' >> /home/starrocks/tool/addBeTool.py
+          echo '        cursor.execute("ALTER SYSTEM ADD BACKEND '"'"'%s:9050'"'"'"%sys.argv[index])' >> /home/starrocks/tool/addBeTool.py
+          echo 'data = cursor.fetchone()' >> /home/starrocks/tool/addBeTool.py
+          echo 'db.close()' >> /home/starrocks/tool/addBeTool.py
+          chmod +x /home/starrocks/tool/addBeTool.py
+
+          wget ${StarRocksDownLoadURL} -O starrocks.tar.gz
+          mkdir ./StarRocks && tar -zxvf starrocks.tar.gz -C ./StarRocks --strip-components 1
+          rm -rf starrocks.tar.gz
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+
+          cd /home/starrocks/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${SysLogDir} ${SysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks
+
+          bin/start_be.sh --daemon
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance3 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT10M"
+  BeInstance4:
+    Condition: 4NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 4
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance4 --region ${AWS::Region}
+          
+          wget ${JDKDownLoadURL} -O java.tar.gz
+          mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf java.tar.gz
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          cd /home/starrocks
+
+          mkdir -p /home/starrocks/tool
+          echo '#!/usr/bin/python' >> /home/starrocks/tool/addBeTool.py
+          echo '# -*- coding: UTF-8 -*-' >> /home/starrocks/tool/addBeTool.py
+          echo 'import MySQLdb' >> /home/starrocks/tool/addBeTool.py
+          echo 'import sys' >> /home/starrocks/tool/addBeTool.py
+          echo 'import time' >> /home/starrocks/tool/addBeTool.py
+          echo 'import os' >> /home/starrocks/tool/addBeTool.py
+          echo 'time.sleep(30)' >> /home/starrocks/tool/addBeTool.py
+          echo 'db = MySQLdb.connect(host = '"'"'127.0.0.1'"'"', user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> /home/starrocks/tool/addBeTool.py
+          echo 'cursor = db.cursor()' >> /home/starrocks/tool/addBeTool.py
+          echo 'for index in range(len(sys.argv)):' >> /home/starrocks/tool/addBeTool.py
+          echo '    if index == 0:' >> /home/starrocks/tool/addBeTool.py
+          echo '        continue' >> /home/starrocks/tool/addBeTool.py
+          echo '    if sys.argv[index] != '"'"'0.0.0.0'"'"':' >> /home/starrocks/tool/addBeTool.py
+          echo '        cursor.execute("ALTER SYSTEM ADD BACKEND '"'"'%s:9050'"'"'"%sys.argv[index])' >> /home/starrocks/tool/addBeTool.py
+          echo 'data = cursor.fetchone()' >> /home/starrocks/tool/addBeTool.py
+          echo 'db.close()' >> /home/starrocks/tool/addBeTool.py
+          chmod +x /home/starrocks/tool/addBeTool.py
+
+          wget ${StarRocksDownLoadURL} -O starrocks.tar.gz
+          mkdir ./StarRocks && tar -zxvf starrocks.tar.gz -C ./StarRocks --strip-components 1
+          rm -rf starrocks.tar.gz
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+
+          cd /home/starrocks/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${SysLogDir} ${SysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks
+
+          bin/start_be.sh --daemon
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance4 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT10M"
+  BeInstance5:
+    Condition: 5NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 5
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance5 --region ${AWS::Region}
+          
+          wget ${JDKDownLoadURL} -O java.tar.gz
+          mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf java.tar.gz
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          cd /home/starrocks
+
+          mkdir -p /home/starrocks/tool
+          echo '#!/usr/bin/python' >> /home/starrocks/tool/addBeTool.py
+          echo '# -*- coding: UTF-8 -*-' >> /home/starrocks/tool/addBeTool.py
+          echo 'import MySQLdb' >> /home/starrocks/tool/addBeTool.py
+          echo 'import sys' >> /home/starrocks/tool/addBeTool.py
+          echo 'import time' >> /home/starrocks/tool/addBeTool.py
+          echo 'import os' >> /home/starrocks/tool/addBeTool.py
+          echo 'time.sleep(30)' >> /home/starrocks/tool/addBeTool.py
+          echo 'db = MySQLdb.connect(host = '"'"'127.0.0.1'"'"', user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> /home/starrocks/tool/addBeTool.py
+          echo 'cursor = db.cursor()' >> /home/starrocks/tool/addBeTool.py
+          echo 'for index in range(len(sys.argv)):' >> /home/starrocks/tool/addBeTool.py
+          echo '    if index == 0:' >> /home/starrocks/tool/addBeTool.py
+          echo '        continue' >> /home/starrocks/tool/addBeTool.py
+          echo '    if sys.argv[index] != '"'"'0.0.0.0'"'"':' >> /home/starrocks/tool/addBeTool.py
+          echo '        cursor.execute("ALTER SYSTEM ADD BACKEND '"'"'%s:9050'"'"'"%sys.argv[index])' >> /home/starrocks/tool/addBeTool.py
+          echo 'data = cursor.fetchone()' >> /home/starrocks/tool/addBeTool.py
+          echo 'db.close()' >> /home/starrocks/tool/addBeTool.py
+          chmod +x /home/starrocks/tool/addBeTool.py
+
+          wget ${StarRocksDownLoadURL} -O starrocks.tar.gz
+          mkdir ./StarRocks && tar -zxvf starrocks.tar.gz -C ./StarRocks --strip-components 1
+          rm -rf starrocks.tar.gz
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+
+          cd /home/starrocks/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${SysLogDir} ${SysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks
+
+          bin/start_be.sh --daemon
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance5 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT10M"
+  BeInstance6:
+    Condition: 6NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 6
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance6 --region ${AWS::Region}
+          
+          wget ${JDKDownLoadURL} -O java.tar.gz
+          mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf java.tar.gz
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          cd /home/starrocks
+
+          mkdir -p /home/starrocks/tool
+          echo '#!/usr/bin/python' >> /home/starrocks/tool/addBeTool.py
+          echo '# -*- coding: UTF-8 -*-' >> /home/starrocks/tool/addBeTool.py
+          echo 'import MySQLdb' >> /home/starrocks/tool/addBeTool.py
+          echo 'import sys' >> /home/starrocks/tool/addBeTool.py
+          echo 'import time' >> /home/starrocks/tool/addBeTool.py
+          echo 'import os' >> /home/starrocks/tool/addBeTool.py
+          echo 'time.sleep(30)' >> /home/starrocks/tool/addBeTool.py
+          echo 'db = MySQLdb.connect(host = '"'"'127.0.0.1'"'"', user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> /home/starrocks/tool/addBeTool.py
+          echo 'cursor = db.cursor()' >> /home/starrocks/tool/addBeTool.py
+          echo 'for index in range(len(sys.argv)):' >> /home/starrocks/tool/addBeTool.py
+          echo '    if index == 0:' >> /home/starrocks/tool/addBeTool.py
+          echo '        continue' >> /home/starrocks/tool/addBeTool.py
+          echo '    if sys.argv[index] != '"'"'0.0.0.0'"'"':' >> /home/starrocks/tool/addBeTool.py
+          echo '        cursor.execute("ALTER SYSTEM ADD BACKEND '"'"'%s:9050'"'"'"%sys.argv[index])' >> /home/starrocks/tool/addBeTool.py
+          echo 'data = cursor.fetchone()' >> /home/starrocks/tool/addBeTool.py
+          echo 'db.close()' >> /home/starrocks/tool/addBeTool.py
+          chmod +x /home/starrocks/tool/addBeTool.py
+
+          wget ${StarRocksDownLoadURL} -O starrocks.tar.gz
+          mkdir ./StarRocks && tar -zxvf starrocks.tar.gz -C ./StarRocks --strip-components 1
+          rm -rf starrocks.tar.gz
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+
+          cd /home/starrocks/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${SysLogDir} ${SysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks
+
+          bin/start_be.sh --daemon
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance6 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT10M"
+Outputs:
+  BeInstance1:
+    Condition: 3NodesCondition
+    Description: be instance 1
+    Value: !Ref BeInstance1
+  BeInstancePrivateIp1:
+    Condition: 3NodesCondition
+    Value: !GetAtt BeInstance1.PrivateIp
+  BeInstance2:
+    Condition: 3NodesCondition
+    Description: be instance 2
+    Value: !Ref BeInstance2
+  BeInstancePrivateIp2:
+    Condition: 3NodesCondition
+    Value: !GetAtt BeInstance2.PrivateIp
+  BeInstance3:
+    Condition: 3NodesCondition
+    Description: be instance 3
+    Value: !Ref BeInstance3
+  BeInstancePrivateIp3:
+    Condition: 3NodesCondition
+    Value: !GetAtt BeInstance3.PrivateIp
+  BeInstance4:
+    Condition: 4NodesCondition
+    Description: be instance 4
+    Value: !Ref BeInstance4
+  BeInstancePrivateIp4:
+    Condition: 4NodesCondition
+    Value: !GetAtt BeInstance4.PrivateIp
+  BeInstance5:
+    Condition: 5NodesCondition
+    Description: be instance 5
+    Value: !Ref BeInstance5
+  BeInstancePrivateIp5:
+    Condition: 5NodesCondition
+    Value: !GetAtt BeInstance5.PrivateIp
+  BeInstance6:
+    Condition: 6NodesCondition
+    Description: be instance 6
+    Value: !Ref BeInstance6
+  BeInstancePrivateIp6:
+    Condition: 6NodesCondition
+    Value: !GetAtt BeInstance6.PrivateIp

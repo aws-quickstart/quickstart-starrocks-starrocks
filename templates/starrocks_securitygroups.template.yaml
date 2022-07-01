@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This template is used for setting up Security Groups.
+
+Metadata:
+  LICENSE: Apache License Version 2.0
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Network configuration
+      Parameters:
+      - VPCID
+      - VPCCIDR
+      - BastionSecurityGroupID
+    ParameterLabels:
+      VPCID:
+        default: VPC ID
+      VPCCIDR:
+        default: VPC CIDR
+      BastionSecurityGroupID:
+        default: Bastion security group ID
+Parameters:
+  VPCID:
+    Description: VPC ID of your existing Virtual Private Cloud (VPC) where you want.
+      to depoy RDS.
+    Type: AWS::EC2::VPC::Id
+  VPCCIDR:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Must be a valid IP range in the form x.x.x.x/x.
+    Description: The CIDR block for VPC.
+    Type: String
+  BastionSecurityGroupID:
+    Description: The BastionSecurityGroupID range that is permitted to access.
+    Type: String
+Resources:
+  StarRocksServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow access to StarRocks port.
+      VpcId: !Ref VPCID
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 9060
+        ToPort: 9060
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 8040
+        ToPort: 8040
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 9050
+        ToPort: 9050
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 8060
+        ToPort: 8060
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 8030
+        ToPort: 8030
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 9020
+        ToPort: 9020
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 9030
+        ToPort: 9030
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 9010
+        ToPort: 9010
+        CidrIp: !Ref VPCCIDR
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !Ref BastionSecurityGroupID
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 0.0.0.0/0
+Outputs:
+  StarRocksServerSecurityGroup:
+    Description: StarRocks Security Group
+    Value: !Ref StarRocksServerSecurityGroup
