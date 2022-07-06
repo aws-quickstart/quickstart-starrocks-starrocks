@@ -3,6 +3,9 @@ Description: This template is used for setting up Security Groups.
 
 Metadata:
   LICENSE: Apache License Version 2.0
+  QuickStartDocumentation:
+    EntrypointName: "Parameters for deploying Security Stack"
+    Order: "2"
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:

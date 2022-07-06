@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Deploy StarRocks-BE on Amazon Web Services'
 Metadata:
   LICENSE: Apache License Version 2.0
+  QuickStartDocumentation:
+    EntrypointName: "Parameters for deploying Be Stack"
+    Order: "3"
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
@@ -59,14 +62,14 @@ Metadata:
         default: Volume size of Be nodes
       Iops:
         default: IOPS of Be nodes
-Parameters: 
-  PrivateSubnetID: 
+Parameters:
+  PrivateSubnetID:
     Description: The Private Subnet ID that you want to deploy Fe nodes.
     Type: String
-  StarRocksServerSecurityGroup: 
+  StarRocksServerSecurityGroup:
     Description: StarRocks Server Security Group.
     Type: String
-  KeyPairName: 
+  KeyPairName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Public/private key pairs allow you to securely connect to your instance after it launches.
   LatestAmiId:
@@ -78,10 +81,10 @@ Parameters:
   StarRocksDownLoadURL:
     Description: URL of StarRocks
     Type: String
-  BeNodeInstanceType: 
+  BeNodeInstanceType:
     Description: Amazon EC2 instance type for the be nodes.
     Type: String
-    AllowedValues: 
+    AllowedValues:
       - t2.micro
       - t2.small
       - t2.medium
@@ -114,7 +117,7 @@ Parameters:
   BeNodeCount:
     Type: Number
     Description: Number of StarRocks Be
-    AllowedValues: 
+    AllowedValues:
       - 3
       - 4
       - 5
@@ -125,12 +128,12 @@ Parameters:
   SysLogLevel:
     Description: Sys Log Level, please select from the drop-down menu
     Type: String
-    AllowedValues: 
+    AllowedValues:
       - INFO
       - WARN
       - ERROR
       - FATAL
-  VolumeType: 
+  VolumeType:
     Type: String
     Description: EBS volume type (data) to be attached to node in GBs [gp2,gp3,st1], one volume for data storage is mounted automatically by CloudFormation stack.
     Default: gp2
@@ -139,28 +142,28 @@ Parameters:
       - gp3
       - st1
       - io1
-  VolumeSize: 
+  VolumeSize:
     Type: String
     Description: EBS volume size (data) to be attached to node in GBs.
     Default: 50
-  Iops: 
+  Iops:
     Type: String
     Description: IOPS of EBS volume when io1 type is chosen. Otherwise ignored.
     Default: 1000
 Conditions:
-  UseIops: 
+  UseIops:
     Fn::Equals: [!Ref VolumeType,"io1"]
-  3NodesCondition: !Or 
+  3NodesCondition: !Or
     - !Equals [!Ref 'BeNodeCount', '3']
     - !Equals [!Ref 'BeNodeCount', '4']
     - !Equals [!Ref 'BeNodeCount', '5']
     - !Equals [!Ref 'BeNodeCount', '6']
-  4NodesCondition: !Or  
+  4NodesCondition: !Or
     - !Equals [!Ref 'BeNodeCount', '4']
     - !Equals [!Ref 'BeNodeCount', '5']
     - !Equals [!Ref 'BeNodeCount', '6']
-  5NodesCondition: !Or 
-    - !Equals [!Ref 'BeNodeCount', '5'] 
+  5NodesCondition: !Or
+    - !Equals [!Ref 'BeNodeCount', '5']
     - !Equals [!Ref 'BeNodeCount', '6']
   6NodesCondition: !Equals [!Ref 'BeNodeCount', '6']
 Resources:
@@ -256,7 +259,7 @@ Resources:
           bash params.sh ${SysLogDir} ${SysLogLevel}
 
           chown -R starrocks:starrocks /home/starrocks
-          
+
           bin/start_be.sh --daemon
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance1 --region ${AWS::Region}
@@ -294,7 +297,7 @@ Resources:
           !Sub |
           #!/bin/bash -xe
           /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance2 --region ${AWS::Region}
-          
+
           wget ${JDKDownLoadURL} -O java.tar.gz
           mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
           mkdir /usr/java && mv jdk /usr/java
@@ -356,7 +359,7 @@ Resources:
           bash params.sh ${SysLogDir} ${SysLogLevel}
 
           chown -R starrocks:starrocks /home/starrocks
-          
+
           bin/start_be.sh --daemon
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance2 --region ${AWS::Region}
@@ -394,7 +397,7 @@ Resources:
           !Sub |
           #!/bin/bash -xe
           /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance3 --region ${AWS::Region}
-          
+
           wget ${JDKDownLoadURL} -O java.tar.gz
           mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
           mkdir /usr/java && mv jdk /usr/java
@@ -494,7 +497,7 @@ Resources:
           !Sub |
           #!/bin/bash -xe
           /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance4 --region ${AWS::Region}
-          
+
           wget ${JDKDownLoadURL} -O java.tar.gz
           mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
           mkdir /usr/java && mv jdk /usr/java
@@ -594,7 +597,7 @@ Resources:
           !Sub |
           #!/bin/bash -xe
           /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance5 --region ${AWS::Region}
-          
+
           wget ${JDKDownLoadURL} -O java.tar.gz
           mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
           mkdir /usr/java && mv jdk /usr/java
@@ -694,7 +697,7 @@ Resources:
           !Sub |
           #!/bin/bash -xe
           /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance6 --region ${AWS::Region}
-          
+
           wget ${JDKDownLoadURL} -O java.tar.gz
           mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
           mkdir /usr/java && mv jdk /usr/java

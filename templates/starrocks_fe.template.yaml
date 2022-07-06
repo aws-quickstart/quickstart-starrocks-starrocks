@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Deploy StarRocks-FE on Amazon Web Services'
 Metadata:
   LICENSE: Apache License Version 2.0
+  QuickStartDocumentation:
+    EntrypointName: "Parameters for deploying Fe stack"
+    Order: "4"
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
@@ -77,14 +80,14 @@ Metadata:
         default: be ip 5
       BeInstancePrivateIp6:
         default: be ip 6
-Parameters: 
-  PrivateSubnetID: 
+Parameters:
+  PrivateSubnetID:
     Description: The Private Subnet ID that you want to deploy Fe nodes.
     Type: String
-  StarRocksServerSecurityGroup: 
+  StarRocksServerSecurityGroup:
     Description: StarRocks Server Security Group.
     Type: String
-  KeyPairName: 
+  KeyPairName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Public/private key pairs allow you to securely connect to your instance after it launches.
   LatestAmiId:
@@ -96,10 +99,10 @@ Parameters:
   StarRocksDownLoadURL:
     Description: URL of StarRocks
     Type: String
-  FeNodeInstanceType: 
+  FeNodeInstanceType:
     Description: Amazon EC2 instance type for the fe nodes.
     Type: String
-    AllowedValues: 
+    AllowedValues:
       - t2.micro
       - t2.small
       - t2.medium
@@ -138,7 +141,7 @@ Parameters:
   SysLogLevel:
     Description: Sys Log Level, please select from the drop-down menu
     Type: String
-    AllowedValues: 
+    AllowedValues:
       - INFO
       - WARN
       - ERROR
@@ -146,7 +149,7 @@ Parameters:
   MetaDir:
     Description: Dir to save mete data, please to fill in the absolute path
     Type: String
-  VolumeType: 
+  VolumeType:
     Type: String
     Description: EBS volume type (data) to be attached to node in GBs [gp2,gp3,st1], one volume for data storage is mounted automatically by CloudFormation stack.
     Default: gp2
@@ -155,7 +158,7 @@ Parameters:
       - gp3
       - st1
       - io1
-  Iops: 
+  Iops:
     Type: String
     Description: IOPS of EBS volume when io1 type is chosen. Otherwise ignored.
     Default: 1000
@@ -178,7 +181,7 @@ Parameters:
     Description: be ip 6
     Type: String
 Conditions:
-  UseIops: 
+  UseIops:
     Fn::Equals: [!Ref VolumeType,"io1"]
   3NodesCondition: !Equals [!Ref 'FeNodeCount', '3']
 Resources:
@@ -309,7 +312,7 @@ Resources:
           !Sub |
           #!/bin/bash -xe
           /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource FeFollowerInstance1 --region ${AWS::Region}
-          
+
           wget ${JDKDownLoadURL} -O java.tar.gz
           mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
           mkdir /usr/java && mv jdk /usr/java
@@ -405,7 +408,7 @@ Resources:
           !Sub |
           #!/bin/bash -xe
           /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource FeFollowerInstance2 --region ${AWS::Region}
-          
+
           wget ${JDKDownLoadURL} -O java.tar.gz
           mkdir ./jdk && tar -zxvf java.tar.gz -C ./jdk --strip-components 1
           mkdir /usr/java && mv jdk /usr/java
@@ -469,7 +472,7 @@ Resources:
           bash params.sh ${MetaDir} ${LogDir} ${SysLogLevel}
 
           chown -R starrocks:starrocks /home/starrocks
-          
+
           bin/start_fe.sh --helper ${FeMasterInstance.PrivateIp}:9010 --daemon
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeFollowerInstance2 --region ${AWS::Region}
@@ -514,7 +517,7 @@ Resources:
           echo 'data = cursor.fetchone()' >> addToMaster.py
           echo 'db.close()' >> addToMaster.py
           python addToMaster.py ${FeMasterInstance.PrivateIp} ${FeFollowerInstance1.PrivateIp} ${FeFollowerInstance2.PrivateIp}
-          
+
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource ToolInstance --region ${AWS::Region}
     CreationPolicy:
       ResourceSignal:
