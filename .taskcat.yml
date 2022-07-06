@@ -26,7 +26,6 @@ tests:
   default:
     parameters:
       AvailabilityZones: $[taskcat_getaz_2]
-      KeyPairName: $[taskcat_getkeypair]
       PrivateSubnet1ACIDR: 10.0.0.0/19
       PrivateSubnet1BCIDR: 10.0.192.0/21
       PrivateSubnet2ACIDR: 10.0.32.0/19

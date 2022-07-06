@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: This template is used for setting up Security Groups.
-
+Description: This template is used for setting up Security Groups. (qs-1t73fgd40)
 Metadata:
   LICENSE: Apache License Version 2.0
   QuickStartDocumentation:

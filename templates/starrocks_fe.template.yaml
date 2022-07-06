@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Deploy StarRocks-FE on Amazon Web Services'
+Description: Deploy StarRocks-FE on Amazon Web Services (qs-1t73fgd4f)
 Metadata:
   LICENSE: Apache License Version 2.0
   QuickStartDocumentation:
