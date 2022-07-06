@@ -1,0 +1,48 @@
+project:
+  name: quickstart-starrocks-starrocks
+  owner: quickstart-eng@amazon.com
+  s3_regional_buckets: true
+  regions:
+  - ap-northeast-1
+  - ap-northeast-2
+  - ap-south-1
+  - ap-southeast-1
+  - ap-southeast-2
+  - ap-east-1
+  - ca-central-1
+  - eu-central-1
+  - eu-west-1
+  - eu-west-2
+  - eu-west-3
+  - me-south-1
+  - sa-east-1
+  - us-east-1
+  - us-east-2
+    #  - us-west-1
+  - us-west-2
+  template: templates/starrocks-entrypoint-new-vpc.template.yaml
+
+tests:
+  default:
+    parameters:
+      AvailabilityZones: $[taskcat_getaz_2]
+      PrivateSubnet1ACIDR: 10.0.0.0/19
+      PrivateSubnet1BCIDR: 10.0.192.0/21
+      PrivateSubnet2ACIDR: 10.0.32.0/19
+      PrivateSubnet2BCIDR: 10.0.200.0/21
+      PrivateSubnet3ACIDR: 10.0.64.0/19
+      PrivateSubnet3BCIDR: 10.0.208.0/21
+      PrivateSubnet4ACIDR: 10.0.96.0/19
+      PrivateSubnet4BCIDR: 10.0.216.0/21
+      PublicSubnet1CIDR: 10.0.128.0/20
+      PublicSubnet2CIDR: 10.0.144.0/20
+      PublicSubnet3CIDR: 10.0.160.0/20
+      PublicSubnet4CIDR: 10.0.176.0/20
+      QSS3BucketName: $[taskcat_autobucket]
+      QSS3KeyPrefix: quickstart-starrocks-starrocks/
+      RemoteAccessCIDR: 10.0.0.0/16
+      VPCCIDR: 10.0.0.0/16
+      QSS3BucketRegion: $[taskcat_current_region]
+      KeyPairName: override
+    regions:
+      - us-east-1
