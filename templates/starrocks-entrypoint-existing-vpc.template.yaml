@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Deploy StarRocks on Amazon Web Services in an existing VPC. ()
 Metadata:
+  QSLint:
+    Exclusions: [ W9002, W9003, W9004, W9006 ]
   QuickStartDocumentation:
     EntrypointName: Launch into an existing VPC
     Order: "5"
-  QSLint:
-    Exclusions: [ W9002, W9003, W9004, W9006 ]
   cfn-lint:
     config:
       ignore_checks:
