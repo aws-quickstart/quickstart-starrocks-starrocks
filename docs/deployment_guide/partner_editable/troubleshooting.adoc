@@ -2,5 +2,18 @@
 
 For troubleshooting common Quick Start issues, refer to the https://fwd.aws/rA69w?[AWS Quick Start General Information Guide^] and https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/troubleshooting.html[Troubleshooting CloudFormation^].
 
-// == Resources
+== Resources
 // Uncomment section and add links to any external resources that are specified by the partner.
+=== StarRocks FAQ
+
+https://docs.starrocks.com/en-us/main/faq/Deploy_faq#deploy-faq[Deploy FAQ] +
+https://docs.starrocks.com/en-us/main/faq/Exporting_faq#export-faq[Export FAQ] +
+https://docs.starrocks.com/en-us/main/faq/loading/Broker_load_faq#broker-load-faq[BrokerLoad FAQ] +
+https://docs.starrocks.com/en-us/main/faq/loading/DataX_faq#datax--faq[DataX FAQ] +
+https://docs.starrocks.com/en-us/main/faq/loading/Flink_connector_faq#flink-connector-faq[FlinkConnector FAQ] +
+https://docs.starrocks.com/en-us/main/faq/loading/Loading_faq#loading-faq[Loading FAQ] +
+https://docs.starrocks.com/en-us/main/faq/loading/Routine_load_faq#routine-load-faq[RoutingLoad FAQ] +
+https://docs.starrocks.com/en-us/main/faq/loading/Stream_load_faq#stream-load-faq[StreamLoad FAQ] +
+https://docs.starrocks.com/en-us/main/loading/BrokerLoad#frequently-asked-questions[BrokerLoad FAQ] +
+https://docs.starrocks.com/en-us/main/loading/SparkLoad#faqs[SparkLoad FAQ] +
+https://docs.starrocks.com/en-us/main/quick_start/Test_faq#faqs[HardwareSelection FAQ] +
