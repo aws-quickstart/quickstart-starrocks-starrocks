@@ -269,9 +269,8 @@ Parameters:
     Description: Number of Availability Zones to use in the VPC. This must match the value entered for the AvailabilityZones parameter.
   LatestAmiId:
     Description: Reference the latest Amazon Linux AMI in a CloudFormation template.
-    Type: AWS::EC2::Image::Id
-#Default: ami-0d648a61f4ab8d0e2
-    Default: ami-0cff7528ff583bf9a
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
   JDKDownLoadURL:
     Description: URL of download JDK 1.8
     Type: String
