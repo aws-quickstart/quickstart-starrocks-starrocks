@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Deploy StarRocks on Amazon Web Services in an existing VPC. ()
+Description: Deploy StarRocks on Amazon Web Services in an existing VPC. (qs-1t907q13q)
 Metadata:
   QSLint:
     Exclusions: [ W9002, W9003, W9004, W9006 ]
@@ -15,74 +15,62 @@ Metadata:
       - Label:
           default: Network Configuration
         Parameters:
-          - NumberOfAZs
           - VPCID
           - VPCCIDR
           - PrivateSubnet1ID
-          - PrivateSubnet2ID
-          - PrivateSubnet3ID
           - PublicSubnet1ID
           - PublicSubnet2ID
-          - PublicSubnet3ID
           - RemoteAccessCIDR
-    - Label:
-        default: Quick Start configuration
-      Parameters:
-        - QSS3BucketName
-        - QSS3KeyPrefix
-        - QSS3BucketRegion
-        - RemoteAccessCIDR
-    - Label:
-        default: EC2 configuration
-      Parameters:
-        - KeyPairName
-    - Label:
-        default: Environment configuration
-      Parameters:
-        - LatestAmiId
-        - JDKDownLoadURL
-        - StarRocksDownLoadURL
+      - Label:
+          default: Quick Start configuration
+        Parameters:
+          - QSS3BucketName
+          - QSS3KeyPrefix
+          - QSS3BucketRegion
+          - RemoteAccessCIDR
+      - Label:
+          default: EC2 configuration
+        Parameters:
+          - KeyPairName
+      - Label:
+          default: Environment configuration
+        Parameters:
+          - LatestAmiId
+          - JDKDownLoadURL
+          - StarRocksDownLoadURL
 
     # StarRocks Cluster configuration
-    - Label:
-        default: StarRocks Cluster configuration
-      Parameters:
-        - FeNodeCount
-        - FeNodeInstanceType
-        - BeNodeCount
-        - BeNodeInstanceType
+      - Label:
+          default: StarRocks Cluster configuration
+        Parameters:
+          - FeNodeCount
+          - FeNodeInstanceType
+          - BeNodeCount
+          - BeNodeInstanceType
 
     # Fe configuration
-    - Label:
-        default: Fe configuration
-      Parameters:
-        - LogDir
-        - LogLevel
-        - MetaDir
+      - Label:
+          default: Fe configuration
+        Parameters:
+          - LogDir
+          - LogLevel
+          - MetaDir
 
     # BE configuration
-    - Label:
-        default: BE configuration
-      Parameters:
-        - SysLogDir
-        - SysLogLevel
-        - VolumeType
-        - VolumeSize
+      - Label:
+          default: BE configuration
+        Parameters:
+          - SysLogDir
+          - SysLogLevel
+          - VolumeType
+          - VolumeSize
     ParameterLabels:
-      NumberOfAZs:
-        default: Number of Availability Zones
       PublicSubnet1ID:
         default: Public subnet 1 ID
       PublicSubnet2ID:
         default: Public subnet 2 ID
-      PublicSubnet3ID:
-        default: Public subnet 3 ID
       PrivateSubnet1ID:
         default: Private subnet 1 ID
-      PrivateSubnet2ID:
-        default: Private subnet 2 ID
-      PrivateSubnet3ID:
-        default: Private subnet 3 ID
       QSS3BucketName:
         default: Quick Start S3 bucket name
       QSS3KeyPrefix:
@@ -138,21 +126,9 @@ Parameters:
     Type: String
     Description: ID of the public subnet in Availability Zone 2 of your existing VPC (e.g., subnet-b1236eea).
     Default: ""
-  PublicSubnet3ID:
-    Type: String
-    Description: ID of the public subnet in Availability Zone 3 of your existing VPC (e.g., subnet-c3456aba).
-    Default: ""
   PrivateSubnet1ID:
     Type: "AWS::EC2::Subnet::Id"
     Description: ID of the private subnet in Availability Zone 1 of your existing VPC (e.g., subnet-fe9a8b32).
-  PrivateSubnet2ID:
-    Type: String
-    Description: ID of the private subnet in Availability Zone 2 of your existing VPC (e.g., subnet-be8b01ea).
-    Default: ""
-  PrivateSubnet3ID:
-    Type: String
-    Description: ID of the private subnet in Availability Zone 3 of your existing VPC (e.g., subnet-abd39039).
-    Default: ""
   QSS3BucketName:
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     ConstraintDescription:
@@ -209,16 +185,10 @@ Parameters:
       When using your own bucket, specify the Region.
       See https://aws-quickstart.github.io/option1.html.'
     Type: String
-  NumberOfAZs:
-    Type: String
-    AllowedValues: [ "2"]
-    Default: "2"
-    Description: Number of Availability Zones to use in the VPC. This must match the value entered for the AvailabilityZones parameter.
   LatestAmiId:
     Description: Reference the latest Amazon Linux AMI in a CloudFormation template.
-    Type: AWS::EC2::Image::Id
-#Default: ami-0d648a61f4ab8d0e2
-    Default: ami-0cff7528ff583bf9a
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
   JDKDownLoadURL:
     Description: URL of download JDK 1.8
     Type: String
