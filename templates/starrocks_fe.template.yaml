@@ -190,7 +190,7 @@ Resources:
   FeLeaderInstance:
     Type: AWS::EC2::Instance
     Metadata:
-      Comment: Install fe master instance
+      Comment: Install fe leader instance
     Properties:
       KeyName: !Ref KeyPairName
       ImageId: !Ref LatestAmiId
@@ -487,6 +487,12 @@ Resources:
     Type: AWS::EC2::Instance
     Metadata:
       Comment: Install tool instance
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E9101
+          ignore_reasons:
+            E9101: These are currently named this way in the code package.
     Properties:
       KeyName: !Ref KeyPairName
       ImageId: !Ref LatestAmiId
@@ -527,7 +533,7 @@ Resources:
         Timeout: "PT60M"
 Outputs:
   FeLeaderInstance:
-    Description: fe master instance
+    Description: fe leader instance
     Value: !Ref FeLeaderInstance
   FeLeaderInstancePrivateIp:
     Value: !GetAtt FeLeaderInstance.PrivateIp
