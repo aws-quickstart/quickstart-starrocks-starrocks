@@ -185,7 +185,7 @@ Conditions:
     Fn::Equals: [!Ref VolumeType,"io1"]
   3NodesCondition: !Equals [!Ref 'FeNodeCount', '3']
 Resources:
-  FeMasterInstance:
+  FeLeaderInstance:
     Type: AWS::EC2::Instance
     Metadata:
       Comment: Install fe master instance
@@ -207,7 +207,7 @@ Resources:
         Fn::Base64:
           !Sub |
           #!/bin/bash -xe
-          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource FeMasterInstance --region ${AWS::Region}
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource FeLeaderInstance --region ${AWS::Region}
           echo 'export TEST=TEST' >> /home/ec2-user/test.log
           echo 'export TEST=TEST' >> /etc/profile
           wget ${JDKDownLoadURL} -O java.tar.gz
@@ -283,7 +283,7 @@ Resources:
           python /home/starrocks/tool/addBeTool.py ${BeInstancePrivateIp1} ${BeInstancePrivateIp2} ${BeInstancePrivateIp3} ${BeInstancePrivateIp4} ${BeInstancePrivateIp5} ${BeInstancePrivateIp6} >> addbe.log
 
           echo 'end' >> /var/log/test.log
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeMasterInstance --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeLeaderInstance --region ${AWS::Region}
     CreationPolicy:
       ResourceSignal:
         Count: 1
@@ -377,7 +377,7 @@ Resources:
 
           chown -R starrocks:starrocks /home/starrocks
 
-          bin/start_fe.sh --helper ${FeMasterInstance.PrivateIp}:9010 --daemon
+          bin/start_fe.sh --helper ${FeLeaderInstance.PrivateIp}:9010 --daemon
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeFollowerInstance1 --region ${AWS::Region}
     CreationPolicy:
@@ -473,7 +473,7 @@ Resources:
 
           chown -R starrocks:starrocks /home/starrocks
 
-          bin/start_fe.sh --helper ${FeMasterInstance.PrivateIp}:9010 --daemon
+          bin/start_fe.sh --helper ${FeLeaderInstance.PrivateIp}:9010 --daemon
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeFollowerInstance2 --region ${AWS::Region}
     CreationPolicy:
@@ -501,22 +501,22 @@ Resources:
           yum install MySQL-python.x86_64 -y
           mkdir -p /home/tool
           cd /home/tool
-          touch addToMaster.py
-          chmod +x addToMaster.py
-          echo '#!/usr/bin/python' >> addToMaster.py
-          echo '# -*- coding: UTF-8 -*-' >> addToMaster.py
-          echo 'import MySQLdb' >> addToMaster.py
-          echo 'import sys' >> addToMaster.py
-          echo 'import time' >> addToMaster.py
-          echo 'import os' >> addToMaster.py
-          echo 'time.sleep(30)' >> addToMaster.py
-          echo 'db = MySQLdb.connect(host = sys.argv[1], user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> addToMaster.py
-          echo 'cursor = db.cursor()' >> addToMaster.py
-          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[2])' >> addToMaster.py
-          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[3])' >> addToMaster.py
-          echo 'data = cursor.fetchone()' >> addToMaster.py
-          echo 'db.close()' >> addToMaster.py
-          python addToMaster.py ${FeMasterInstance.PrivateIp} ${FeFollowerInstance1.PrivateIp} ${FeFollowerInstance2.PrivateIp}
+          touch addToLeader.py
+          chmod +x addToLeader.py
+          echo '#!/usr/bin/python' >> addToLeader.py
+          echo '# -*- coding: UTF-8 -*-' >> addToLeader.py
+          echo 'import MySQLdb' >> addToLeader.py
+          echo 'import sys' >> addToLeader.py
+          echo 'import time' >> addToLeader.py
+          echo 'import os' >> addToLeader.py
+          echo 'time.sleep(30)' >> addToLeader.py
+          echo 'db = MySQLdb.connect(host = sys.argv[1], user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> addToLeader.py
+          echo 'cursor = db.cursor()' >> addToLeader.py
+          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[2])' >> addToLeader.py
+          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[3])' >> addToLeader.py
+          echo 'data = cursor.fetchone()' >> addToLeader.py
+          echo 'db.close()' >> addToLeader.py
+          python addToLeader.py ${FeLeaderInstance.PrivateIp} ${FeFollowerInstance1.PrivateIp} ${FeFollowerInstance2.PrivateIp}
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource ToolInstance --region ${AWS::Region}
     CreationPolicy:
@@ -524,11 +524,11 @@ Resources:
         Count: 1
         Timeout: "PT60M"
 Outputs:
-  FeMasterInstance:
+  FeLeaderInstance:
     Description: fe master instance
-    Value: !Ref FeMasterInstance
-  FeMasterInstancePrivateIp:
-    Value: !GetAtt FeMasterInstance.PrivateIp
+    Value: !Ref FeLeaderInstance
+  FeLeaderInstancePrivateIp:
+    Value: !GetAtt FeLeaderInstance.PrivateIp
   FeFollowerInstance1:
     Condition: 3NodesCondition
     Description: fe follower instance1
