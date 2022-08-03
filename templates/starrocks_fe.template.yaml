@@ -509,22 +509,22 @@ Resources:
           yum install MySQL-python.x86_64 -y
           mkdir -p /home/tool
           cd /home/tool
-          touch addToMaster.py
-          chmod +x addToMaster.py
-          echo '#!/usr/bin/python' >> addToMaster.py
-          echo '# -*- coding: UTF-8 -*-' >> addToMaster.py
-          echo 'import MySQLdb' >> addToMaster.py
-          echo 'import sys' >> addToMaster.py
-          echo 'import time' >> addToMaster.py
-          echo 'import os' >> addToMaster.py
-          echo 'time.sleep(30)' >> addToMaster.py
-          echo 'db = MySQLdb.connect(host = sys.argv[1], user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> addToMaster.py
-          echo 'cursor = db.cursor()' >> addToMaster.py
-          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[2])' >> addToMaster.py
-          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[3])' >> addToMaster.py
-          echo 'data = cursor.fetchone()' >> addToMaster.py
-          echo 'db.close()' >> addToMaster.py
-          python addToMaster.py ${FeLeaderInstance.PrivateIp} ${FeFollowerInstance1.PrivateIp} ${FeFollowerInstance2.PrivateIp}
+          touch addToLeader.py
+          chmod +x addToLeader.py
+          echo '#!/usr/bin/python' >> addToLeader.py
+          echo '# -*- coding: UTF-8 -*-' >> addToLeader.py
+          echo 'import MySQLdb' >> addToLeader.py
+          echo 'import sys' >> addToLeader.py
+          echo 'import time' >> addToLeader.py
+          echo 'import os' >> addToLeader.py
+          echo 'time.sleep(30)' >> addToLeader.py
+          echo 'db = MySQLdb.connect(host = sys.argv[1], user = '"'"'root'"'"', passwd = '"'"''"'"', port = 9030, connect_timeout=10)' >> addToLeader.py
+          echo 'cursor = db.cursor()' >> addToLeader.py
+          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[2])' >> addToLeader.py
+          echo 'cursor.execute("ALTER SYSTEM ADD FOLLOWER '"'"'%s:9010'"'"'"%sys.argv[3])' >> addToLeader.py
+          echo 'data = cursor.fetchone()' >> addToLeader.py
+          echo 'db.close()' >> addToLeader.py
+          python addToLeader.py ${FeLeaderInstance.PrivateIp} ${FeFollowerInstance1.PrivateIp} ${FeFollowerInstance2.PrivateIp}
 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource ToolInstance --region ${AWS::Region}
     CreationPolicy:
