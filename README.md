@@ -1,8 +1,8 @@
 
-## quickstart-starrocks-starrocks—Quick Start
+## StarRocks Quick Start
 
-For architectural details, step-by-step instructions, and customization options, see the [deployment guide](https://aws-quickstart.github.io/quickstart-starrocks-starrocks/).
+For architectural details, step-by-step instructions, and customization options, see the [deployment guide](https://fwd.aws/qeAwq?).
 
-To post feedback, submit feature ideas, or report bugs, use the **Issues** section of this GitHub repo. 
+To post feedback, submit feature ideas, or report bugs, use the **Issues** section of this GitHub repo.
 
-To submit code for this Quick Start, see the [AWS Quick Start Contributor's Kit](https://aws-quickstart.github.io/).
+To submit code for this Quick Start, see the [AWS Quick Start Contributor's Guide](https://aws-quickstart.github.io/).
