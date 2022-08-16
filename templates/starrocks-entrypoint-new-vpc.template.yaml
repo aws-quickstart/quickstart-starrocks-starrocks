@@ -145,8 +145,7 @@ Metadata:
         default: Default syslog directory
 Parameters:
   AvailabilityZones:
-    Description: List of Availability Zones to use for the subnets in the VPC. Three
-      Availability Zones are used for this deployment.
+    Description: List of Availability Zones to use for the subnets in the VPC. Two Availability Zones are used in this deployment.
     Type: List<AWS::EC2::AvailabilityZone::Name>
   KeyPairName:
     Type: AWS::EC2::KeyPair::KeyName
