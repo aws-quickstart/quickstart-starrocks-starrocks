@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Deploy StarRocks on Amazon Web Services in a new VPC. (qs-1t73fgd1ha)
+Description: Deploy StarRocks on Amazon Web Services in a new VPC.(qs-1t73fgd1ha)
 Metadata:
   QSLint:
     Exclusions: [ W9002, W9003, W9004, W9006 ]
