@@ -1,9 +1,7 @@
 
-This Quick Start deploys {partner-product-name}, a high-performance analytical data warehouse that enables real-time, multidimensional, and highly concurrent data analysis. This quickstart solution helps AWS users deploy a {partner-product-name} cluster on a new or existing VPC with only a few steps.
+This Quick Start deploys https://starrocks.com/index[{partner-product-name}], a high-performance analytical data warehouse that enables real-time, multidimensional, and highly concurrent data analysis. This Quick Start helps AWS users deploy a {partner-product-name} cluster on a new or existing VPC with only a few steps.
 
 If you are unfamiliar with AWS Quick Starts, refer to the https://fwd.aws/rA69w?[AWS Quick Start General Information Guide^].
-
-To Learn more about StarRocks, please visit https://docs.starrocks.com/en-us/main/introduction/StarRocks_intro[StarRocks Documentation]
 
 // For advanced information about the product that this Quick Start deploys, refer to the https://{quickstart-github-org}.github.io/{quickstart-project-name}/operational/index.html[Operational Guide^].
 
