@@ -11,27 +11,15 @@ image::../docs/deployment_guide/images/architecture_diagram.png[Architecture]
 
 As shown in <<architecture1>>, this Quick Start sets up the following:
 
-* A virtual private cloud (VPC) configured with public and private subnets, according to AWS
-best practices, to provide you with your own virtual network on AWS.
-* An Internet gateway, for inbound and out bound access to the Internet.
-* Peering Connection Instances - that connect the client's application from their VPC
+* A highly available architecture that spans multiple Availability Zones.
+* A virtual private cloud (VPC) configured with public and private subnets, according to AWS best practices, to provide you with your own virtual network on AWS.*
+* A VPC peering connection to connect a customer's VPC containing their client application to the Quick Start VPC.
 * In the public subnets:
-** Managed network address translation (NAT) gateways to allow outbound
-internet access for resources in the private subnets.*
-** A Linux bastion host in an Auto Scaling group to allow inbound Secure
-Shell (SSH) access to Amazon Elastic Compute Cloud (Amazon EC2) instances in public and private subnets.
-* In the private subnets: a StarRocks cluster is deployed. (To learn more about StarRocks' architecture, please refer to https://docs.starrocks.com/en-us/main/quick_start/Architecture[StarRocks Architecture])
-** Front End service
-*** Responsible for metadata management, management of client connectors, query planning, query scheduling, etc.
-**** FE leader nodes modifies metadata.
-**** FE follower nodes performs read operations.
-** Back End Service
-***Responsible for data storage, calculation execution, compaction, replication management, etc.
-**** Backend nodes deployed for storage operations.
-
-
-// Add bullet points for any additional components that are included in the deployment. Ensure that the additional components are shown in the architecture diagram. End each bullet with a period.
-* Use VPC Peering to connect user's VPC to the VPC where this QuickStart is deployed.
-
+** Managed network address translation (NAT) gateways to allow outbound internet access for resources in the private subnets.*
+** A Linux bastion host in an Auto Scaling group to allow inbound Secure Shell (SSH) access to Amazon Elastic Compute Cloud (Amazon EC2) instances in public and private subnets.
+* In the private subnets, two services of StarRocks nodes deployed to Amazon EC2 instances.
+** A frontend service for metadata management, client connections, and query scheduling. It contains follower nodes to perform read operations and leader nodes to modify metadata.
+** A backend service containing backend nodes for data storage and SQL computing.
 
 [.small]#* The template that deploys this Quick Start into an existing VPC skips the components marked by asterisks and prompts you for your existing VPC configuration.#
+
