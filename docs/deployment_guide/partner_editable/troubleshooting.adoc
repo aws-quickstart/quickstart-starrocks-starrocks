@@ -1,0 +1,7 @@
+// Add any unique troubleshooting steps here.
+
+For troubleshooting common Quick Start issues, refer to the https://fwd.aws/rA69w?[AWS Quick Start General Information Guide^] and https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/troubleshooting.html[Troubleshooting CloudFormation^].
+
+== Resources
+* https://docs.starrocks.com/en-us/main/introduction/StarRocks_intro[StarRocks documentation]
+* https://docs.starrocks.com/en-us/main/quick_start/Architecture[StarRocks architecture]
