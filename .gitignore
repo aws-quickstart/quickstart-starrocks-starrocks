@@ -1,7 +1,0 @@
-.taskcat
-.project
-taskcat_outputs/
-.taskcat_overrides.yml
-.editorconfig
-.pre-commit-config.yaml
-.idea
