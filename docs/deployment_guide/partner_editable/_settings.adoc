@@ -5,7 +5,7 @@
 :partner-company-name: Starrocks
 :doc-month: August
 :doc-year: 2022
-:partner-contributors: Li Kang, Shilei Fu, Zhao Heng {partner-company-name}
+:partner-contributors: Sida Shen, Li Kang, Shilei Fu, Zhao Heng {partner-company-name}
 // :other-contributors: Akua Mansa, Trek10
 //:aws-contributors: Janine Singh, AWS IoT Partner team
 :aws-ia-contributors: Troy Ameigh, AWS Integration & Automation team
