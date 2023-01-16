@@ -34,6 +34,7 @@ Metadata:
       - QSS3KeyPrefix
       - QSS3BucketRegion
       - RemoteAccessCIDR
+      - BastionEnabled
     - Label:
         default: EC2 configuration
       Parameters:
@@ -41,7 +42,7 @@ Metadata:
     - Label:
         default: Environment configuration
       Parameters:
-      - LatestAmiId
+      - SpecifiedAmiId
       - JDKDownLoadURL
       - StarRocksDownLoadURL
 
@@ -111,8 +112,10 @@ Metadata:
         default: Quick Start S3 bucket Region
       RemoteAccessCIDR:
         default: Allowed bastion external access CIDR
-      LatestAmiId:
-        default: Latest Amazon Linux AMI
+      BastionEnabled:
+        default: Bastion enabled
+      SpecifiedAmiId:
+        Description: Specified AMI ID.
       JDKDownLoadURL:
         default: JDK 1.8 download URL
       StarRocksDownLoadURL:
@@ -150,8 +153,18 @@ Parameters:
   KeyPairName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Name of an existing public/private key pair, which allows you to securely connect to your instance after it launches. Alternatively, if you don't specify a key pair, you can use AWS Systems Manager Session Manager to connect to the instance.
-#    Type: String
- #   Default: ""
+  SpecifiedAmiId:
+    Description: Specified EC2 AMI ID.
+    Type: String
+    AllowedPattern: "(^$|^ami-[a-z0-9]+)"
+    ConstraintDescription: SpecifiedAmiId parameter must be in the form ami-xxxx. 
+    Default: ''
+  BastionEnabled:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
   PublicSubnet1CIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
@@ -271,10 +284,6 @@ Parameters:
     AllowedValues: [ "2"]
     Default: "2"
     Description: Number of Availability Zones to use in the VPC. This must match the value entered for the AvailabilityZones parameter.
-  LatestAmiId:
-    Description: Latest supported and maintained Linux image provided by Amazon Web Services (AWS) for use on Amazon Elastic Compute Cloud (Amazon EC2).
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
   JDKDownLoadURL:
     Description: URL to download Java Development Kit (JDK) 1.8 tar.gz file.
     Type: String
@@ -282,7 +291,6 @@ Parameters:
   StarRocksDownLoadURL:
     Description: URL to download the StarRocks tar.gz file.
     Type: String
-#Default: https://www.starrocks.com/zh-CN/download/request-download/12
     Default: https://download.starrocks.com/en-us/download/request-download/31/
   FeNodeCount:
     Type: Number
@@ -394,6 +402,7 @@ Parameters:
     Description: Default path for syslog files.
     Default: beDefaultLogPath
 Conditions:
+  IsBastionEnabled: !Equals [!Ref "BastionEnabled", "true"]
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
   4BeNodesCondition: !Or
     - !Equals [!Ref 'BeNodeCount', '4']
@@ -403,14 +412,6 @@ Conditions:
     - !Equals [!Ref 'BeNodeCount', '5']
     - !Equals [!Ref 'BeNodeCount', '6']
   6BeNodesCondition: !Equals [!Ref 'BeNodeCount', '6']
-#Rules:
-#  KeyPairsNotEmpty:
-#    Assertions:
- #     - Assert: !Not
-  #        - 'Fn::EachMemberEquals':
- #             - 'Fn::RefAll': 'AWS::EC2::KeyPair::KeyName'
-  #            - ''
-  #      AssertDescription: AWS Key Pair Name parameters must not be empty
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -438,6 +439,7 @@ Resources:
         PrivateSubnet4BCIDR: !Ref PrivateSubnet4BCIDR
         VPCCIDR: !Ref 'VPCCIDR'
   BastionStack:
+    Condition: IsBastionEnabled
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub
@@ -463,62 +465,34 @@ Resources:
       Parameters:
         VPCID: !GetAtt VPCStack.Outputs.VPCID
         VPCCIDR: !GetAtt VPCStack.Outputs.VPCCIDR
-        BastionSecurityGroupID: !GetAtt BastionStack.Outputs.BastionSecurityGroupID
-  BeStack:
+        BastionSecurityGroupID: !If [ IsBastionEnabled, !GetAtt BastionStack.Outputs.BastionSecurityGroupID, ""]
+  StarRocksClusterStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/starrocks_be.template.yaml'
-        - S3Region: !If [ UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion ]
-          S3Bucket: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
-      Parameters:
-        BeNodeCount: !Ref BeNodeCount
-        PrivateSubnetID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        StarRocksServerSecurityGroup: !GetAtt SecurityGroupStack.Outputs.StarRocksServerSecurityGroup
-        KeyPairName: !Ref KeyPairName
-        LatestAmiId: !Ref LatestAmiId
-        JDKDownLoadURL: !Ref JDKDownLoadURL
-        StarRocksDownLoadURL: !Ref StarRocksDownLoadURL
-        BeNodeInstanceType: !Ref BeNodeInstanceType
-        SysLogDir: !Ref SysLogDir
-        SysLogLevel: !Ref SysLogLevel
-        VolumeType: !Ref VolumeType
-        VolumeSize: !Ref VolumeSize
-  FeStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/starrocks_fe.template.yaml'
+        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/starrocks_cluster.template.yaml'
         - S3Region: !If [ UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion ]
           S3Bucket: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
       Parameters:
         PrivateSubnetID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         StarRocksServerSecurityGroup: !GetAtt SecurityGroupStack.Outputs.StarRocksServerSecurityGroup
         KeyPairName: !Ref KeyPairName
-        LatestAmiId: !Ref LatestAmiId
+        SpecifiedAmiId: !Ref SpecifiedAmiId
         JDKDownLoadURL: !Ref JDKDownLoadURL
         StarRocksDownLoadURL: !Ref StarRocksDownLoadURL
         FeNodeInstanceType: !Ref FeNodeInstanceType
         FeNodeCount: !Ref FeNodeCount
-        LogDir: !Ref LogDir
-        SysLogLevel: !Ref LogLevel
-        MetaDir: !Ref MetaDir
+        FeSysLogDir: !Ref LogDir
+        FeSysLogLevel: !Ref LogLevel
+        FeMetaDir: !Ref MetaDir
+        BeNodeCount: !Ref BeNodeCount
+        BeNodeInstanceType: !Ref BeNodeInstanceType
+        BeSysLogDir: !Ref SysLogDir
+        BeSysLogLevel: !Ref SysLogLevel
         VolumeType: !Ref VolumeType
-        BeInstancePrivateIp1: !GetAtt BeStack.Outputs.BeInstancePrivateIp1
-        BeInstancePrivateIp2: !GetAtt BeStack.Outputs.BeInstancePrivateIp2
-        BeInstancePrivateIp3: !GetAtt BeStack.Outputs.BeInstancePrivateIp3
-        BeInstancePrivateIp4: !If
-          - 4BeNodesCondition
-          - !GetAtt BeStack.Outputs.BeInstancePrivateIp4
-          - 0.0.0.0
-        BeInstancePrivateIp5: !If
-          - 5BeNodesCondition
-          - !GetAtt BeStack.Outputs.BeInstancePrivateIp5
-          - 0.0.0.0
-        BeInstancePrivateIp6: !If
-          - 6BeNodesCondition
-          - !GetAtt BeStack.Outputs.BeInstancePrivateIp6
-          - 0.0.0.0
+        VolumeSize: !Ref VolumeSize
+        QSS3BucketName: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
 Outputs:
   Postdeployment:
     Description: See the deployment guide for postdeployment steps.
