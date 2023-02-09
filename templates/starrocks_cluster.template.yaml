@@ -118,11 +118,15 @@ Parameters:
     Description: URL to download the StarRocks tar.gz file.
     Type: String
     Default: https://releases.starrocks.io/starrocks/StarRocks-2.5.0-rc03.tar.gz
+  RootPassword:
+    Type: String
+    Description: Root Password.
   FeNodeInstanceType:
     Description: Amazon EC2 instance type for the fe nodes.
     Type: String
     Default: t2.small
     AllowedValues:
+      - t2.nano
       - t2.micro
       - t2.small
       - t2.medium
@@ -328,7 +332,7 @@ Resources:
 
           sudo mkfs.xfs /dev/xvdt
           sudo mount /dev/xvdt /home/starrocks
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -427,7 +431,7 @@ Resources:
 
           sudo mkfs.xfs /dev/xvdt
           sudo mount /dev/xvdt /home/starrocks
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -526,7 +530,7 @@ Resources:
 
           sudo mkfs.xfs /dev/xvdt
           sudo mount /dev/xvdt /home/starrocks
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -625,7 +629,7 @@ Resources:
 
           sudo mkfs.xfs /dev/xvdt
           sudo mount /dev/xvdt /home/starrocks
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -724,7 +728,7 @@ Resources:
 
           sudo mkfs.xfs /dev/xvdt
           sudo mount /dev/xvdt /home/starrocks
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -824,7 +828,7 @@ Resources:
           sudo mkfs.xfs /dev/xvdt
           sudo mount /dev/xvdt /home/starrocks
           
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -913,7 +917,7 @@ Resources:
           sudo mount /dev/xvdt /home/starrocks
           echo -e $(date) "mount disk done" >> /var/log/quickstart.log
           
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -1009,7 +1013,7 @@ Resources:
           sudo mount /dev/xvdt /home/starrocks
           echo -e $(date) "mount done" >> /var/log/quickstart.log
 
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -1106,7 +1110,7 @@ Resources:
           sudo mount /dev/xvdt /home/starrocks
           echo -e $(date) "mount disk done" >> /var/log/quickstart.log
 
-          if ![ -d /opt/StarRocks ]; then
+          if [ ! -d /opt/StarRocks ]; then
             wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
             echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
             mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
@@ -1180,33 +1184,47 @@ Resources:
       Timeout: 30
       Code:
         S3Bucket: !Sub '${QSS3BucketName}-${AWS::Region}'
-        S3Key: !Sub '${QSS3KeyPrefix}/functions/packages/Deploy/lambda.zip'
+        S3Key: !Sub '${QSS3KeyPrefix}/functions/packages/deploy.zip'
       VpcConfig:
         SubnetIds: 
           - !Ref PrivateSubnetID
         SecurityGroupIds:
           - !Ref StarRocksServerSecurityGroup
   AddBE:
-    DependsOn: ToolApiFunction
+    DependsOn: 
+      - ToolApiFunction
     Type: 'Custom::AddBE'
     Properties:
       ServiceToken: !GetAtt ToolApiFunction.Arn
       FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
+      RootPassword: ""
       BeInstance1PrivateIp: !If [3NodesCondition, !GetAtt BeInstance1.PrivateIp, ""]
       BeInstance2PrivateIp: !If [3NodesCondition, !GetAtt BeInstance2.PrivateIp, ""]
       BeInstance3PrivateIp: !If [3NodesCondition, !GetAtt BeInstance3.PrivateIp, ""]
       BeInstance4PrivateIp: !If [4NodesCondition, !GetAtt BeInstance4.PrivateIp, ""]
       BeInstance5PrivateIp: !If [5NodesCondition, !GetAtt BeInstance5.PrivateIp, ""]
       BeInstance6PrivateIp: !If [6NodesCondition, !GetAtt BeInstance6.PrivateIp, ""]
+  ChangeRootPassword:
+    DependsOn: 
+      - ToolApiFunction
+      - AddBE
+    Type: 'Custom::ChangeRootPassword'
+    Properties:
+      ServiceToken: !GetAtt ToolApiFunction.Arn
+      FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
+      RootPassword: !Ref RootPassword 
   AddFeFollower:
     Condition: 3FeNodesCondition
-    DependsOn: ToolApiFunction
+    DependsOn: 
+      - ToolApiFunction
+      - ChangeRootPassword 
     Type: 'Custom::AddFEFollower'
     Properties:
       ServiceToken: !GetAtt ToolApiFunction.Arn
       FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
       FeFollowerInstance1PrivateIp: !GetAtt FeFollowerInstance1.PrivateIp
       FeFollowerInstance2PrivateIp: !GetAtt FeFollowerInstance2.PrivateIp
+      RootPassword: !Ref RootPassword 
 Outputs:
   FeLeaderInstance:
     Description: fe leader instance

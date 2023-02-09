@@ -18,8 +18,13 @@ def handler(event, context):
     try:   
         if event['RequestType'] == 'Create':
             fe_leader_ip = event['ResourceProperties']['FeLeaderInstancePrivateIp'] 
-            db = pymysql.connect(host=fe_leader_ip, user='root', password='', port=9030)
-            cursor = db.cursor()          
+            root_password = event['ResourceProperties']['RootPassword']
+            password  = '' if event["ResourceType"] == "Custom::ChangeRootPassword" else root_password 
+            db = pymysql.connect(host=fe_leader_ip, user='root', password=password, port=9030)
+            cursor = db.cursor()
+
+            if event["ResourceType"] == "Custom::ChangeRootPassword":
+                cursor.execute(f"SET PASSWORD for root = PASSWORD('{root_password}');")   
             if event["ResourceType"] == "Custom::AddBE":
                 for i in range(1, 7):
                     if event['ResourceProperties'].get("BeInstance" + str(i) + "PrivateIp", ""):

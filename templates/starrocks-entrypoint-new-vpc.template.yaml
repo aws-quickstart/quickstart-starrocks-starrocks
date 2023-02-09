@@ -16,16 +16,10 @@ Metadata:
       - NumberOfAZs
       - PublicSubnet1CIDR
       - PublicSubnet2CIDR
-      - PublicSubnet3CIDR
-      - PublicSubnet4CIDR
       - PrivateSubnet1ACIDR
       - PrivateSubnet2ACIDR
-      - PrivateSubnet3ACIDR
-      - PrivateSubnet4ACIDR
       - PrivateSubnet1BCIDR
       - PrivateSubnet2BCIDR
-      - PrivateSubnet3BCIDR
-      - PrivateSubnet4BCIDR
       - VPCCIDR
     - Label:
         default: Quick Start configuration
@@ -54,6 +48,8 @@ Metadata:
       - FeNodeInstanceType
       - BeNodeCount
       - BeNodeInstanceType
+      - RootPassword
+      - ConfirmRootPassword
 
     # Fe configuration
     - Label:
@@ -86,22 +82,10 @@ Metadata:
         default: Private subnet 2A CIDR
       PrivateSubnet2BCIDR:
         default: Private subnet 2B with dedicated network ACL CIDR
-      PrivateSubnet3ACIDR:
-        default: Private subnet 3A CIDR
-      PrivateSubnet3BCIDR:
-        default: Private subnet 3B with dedicated network ACL CIDR
-      PrivateSubnet4ACIDR:
-        default: Private subnet 4A CIDR
-      PrivateSubnet4BCIDR:
-        default: Private subnet 4B with dedicated network ACL CIDR
       PublicSubnet1CIDR:
         default: Public subnet 1 CIDR
       PublicSubnet2CIDR:
         default: Public subnet 2 CIDR
-      PublicSubnet3CIDR:
-        default: Public subnet 3 CIDR
-      PublicSubnet4CIDR:
-        default: Public subnet 4 CIDR
       KeyPairName:
         default: Key pair name
       QSS3BucketName:
@@ -128,6 +112,10 @@ Metadata:
         default: Number of StarRocks BE nodes
       BeNodeInstanceType:
         default: BE instance type
+      RootPassword:
+        default: Root Password of Starrock
+      ConfirmRootPassword:
+        default: Confirm Root Password
 
       # FE
       LogLevel:
@@ -177,18 +165,6 @@ Parameters:
     Default: 10.0.144.0/20
     Description: CIDR block for the public perimeter zone subnet 2, located in Availability Zone 2.
     Type: String
-  PublicSubnet3CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.160.0/20
-    Description: CIDR block for the public perimeter zone subnet 3, located in Availability Zone 3.
-    Type: String
-  PublicSubnet4CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.176.0/20
-    Description: CIDR block for the public perimeter zone subnet 4, located in Availability Zone 4.
-    Type: String
   PrivateSubnet1ACIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
@@ -212,30 +188,6 @@ Parameters:
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
     Default: 10.0.200.0/21
     Description: CIDR block for private subnet 2B with dedicated network ACL, located in Availability Zone 2.
-    Type: String
-  PrivateSubnet3ACIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.64.0/19
-    Description: CIDR block for private subnet 3A, located in Availability Zone 3.
-    Type: String
-  PrivateSubnet3BCIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.208.0/21
-    Description: CIDR block for private subnet 3B with dedicated network ACL, located in Availability Zone 3.
-    Type: String
-  PrivateSubnet4ACIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.96.0/19
-    Description: CIDR block for private subnet 4A, located in Availability Zone 4.
-    Type: String
-  PrivateSubnet4BCIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.216.0/21
-    Description: CIDR block for private subnet 4B with dedicated network ACL, located in Availability Zone 4.
     Type: String
   QSS3BucketName:
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
@@ -273,6 +225,7 @@ Parameters:
     Description: CIDR IP range that is permitted to access the instances. We recommend
       that you set this value to a trusted IP range.
     Type: String
+    Default: 10.0.0.0/16
   VPCCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16–28.
@@ -291,7 +244,7 @@ Parameters:
   StarRocksDownLoadURL:
     Description: URL to download the StarRocks tar.gz file.
     Type: String
-    Default: https://download.starrocks.com/en-us/download/request-download/31/
+    Default:  https://releases.starrocks.io/starrocks/StarRocks-2.5.1.tar.gz
   FeNodeCount:
     Type: Number
     Default: 1
@@ -354,6 +307,20 @@ Parameters:
     Default: t2.micro
     Description: Amazon EC2 instance type for BE instances.
     Type: String
+  RootPassword:
+    NoEcho: true
+    Type: String
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: '^[a-zA-Z0-9]*$'
+    Description: Root Password, The minimum length that can be specified is 1, and the maximum length that can be specified is 32. The pattern allows lowercase and uppercase alphabetical characters and numerals.
+  ConfirmRootPassword:
+    NoEcho: true
+    Type: String
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: '^[a-zA-Z0-9]*$'
+    Description: Confirm Root Password.
 
   # Fe
   LogLevel:
@@ -412,6 +379,13 @@ Conditions:
     - !Equals [!Ref 'BeNodeCount', '5']
     - !Equals [!Ref 'BeNodeCount', '6']
   6BeNodesCondition: !Equals [!Ref 'BeNodeCount', '6']
+Rules:
+  matchPasswords:
+    Assertions:
+      - Assert:
+          Fn::Equals:
+            - Ref: 'RootPassword'
+            - Ref: 'ConfirmRootPassword'
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -427,16 +401,10 @@ Resources:
         NumberOfAZs: !Ref 'NumberOfAZs'
         PublicSubnet1CIDR: !Ref 'PublicSubnet1CIDR'
         PublicSubnet2CIDR: !Ref 'PublicSubnet2CIDR'
-        PublicSubnet3CIDR: !Ref 'PublicSubnet3CIDR'
-        PublicSubnet4CIDR: !Ref 'PublicSubnet4CIDR'
         PrivateSubnet1ACIDR: !Ref PrivateSubnet1ACIDR
         PrivateSubnet1BCIDR: !Ref PrivateSubnet1BCIDR
         PrivateSubnet2ACIDR: !Ref PrivateSubnet2ACIDR
         PrivateSubnet2BCIDR: !Ref PrivateSubnet2BCIDR
-        PrivateSubnet3ACIDR: !Ref PrivateSubnet3ACIDR
-        PrivateSubnet3BCIDR: !Ref PrivateSubnet3BCIDR
-        PrivateSubnet4ACIDR: !Ref PrivateSubnet4ACIDR
-        PrivateSubnet4BCIDR: !Ref PrivateSubnet4BCIDR
         VPCCIDR: !Ref 'VPCCIDR'
   BastionStack:
     Condition: IsBastionEnabled
@@ -493,6 +461,7 @@ Resources:
         VolumeSize: !Ref VolumeSize
         QSS3BucketName: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        RootPassword: !Ref RootPassword 
 Outputs:
   Postdeployment:
     Description: See the deployment guide for postdeployment steps.

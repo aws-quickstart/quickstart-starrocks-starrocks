@@ -47,6 +47,8 @@ Metadata:
           - FeNodeInstanceType
           - BeNodeCount
           - BeNodeInstanceType
+          - RootPassword
+          - ConfirmRootPassword
 
     # Fe configuration
       - Label:
@@ -101,6 +103,10 @@ Metadata:
         default: Number of StarRocks BE nodes
       BeNodeInstanceType:
         default: BE instance type
+      RootPassword:
+        default: Root Password of Starrock
+      ConfirmRootPassword:
+        default: Confirm Root Password
 
       # FE
       LogLevel:
@@ -154,6 +160,7 @@ Parameters:
     Type: String
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
     Description: Allowed CIDR block for external SSH access to the bastions
+    Default: 10.0.0.0/16
   VPCID:
     Type: "AWS::EC2::VPC::Id"
     Description: ID of your existing VPC (for example, vpc-0343606e).
@@ -195,7 +202,7 @@ Parameters:
   StarRocksDownLoadURL:
     Description: URL to download the StarRocks tar.gz file.
     Type: String
-    Default: https://releases.starrocks.io/starrocks/StarRocks-2.5.0-rc03.tar.gz
+    Default: https://releases.starrocks.io/starrocks/StarRocks-2.5.1.tar.gz
   FeNodeCount:
     Type: Number
     Default: 1
@@ -258,7 +265,21 @@ Parameters:
     Default: t2.micro
     Description: Amazon EC2 instance type for BE instances.
     Type: String
-
+  RootPassword:
+    NoEcho: true
+    Type: String
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: '^[a-zA-Z0-9]*$'
+    Description: Root Password, The minimum length that can be specified is 1, and the maximum length that can be specified is 32. The pattern allows lowercase and uppercase alphabetical characters and numerals.
+  ConfirmRootPassword:
+    NoEcho: true
+    Type: String
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: '^[a-zA-Z0-9]*$'
+    Description: Confirm Root Password.
+  
   # Fe
   LogLevel:
     Description: Starrock FE syslog level.
@@ -316,6 +337,13 @@ Conditions:
     - !Equals [ !Ref 'BeNodeCount', '6' ]
   6BeNodesCondition: !Equals [ !Ref 'BeNodeCount', '6' ]
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
+Rules:
+  matchPasswords:
+    Assertions:
+      - Assert:
+          Fn::Equals:
+            - Ref: 'RootPassword'
+            - Ref: 'ConfirmRootPassword'
 Resources:
   BastionStack:
     Condition: IsBastionEnabled
@@ -372,6 +400,7 @@ Resources:
         VolumeSize: !Ref VolumeSize
         QSS3BucketName: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        RootPassword: !Ref RootPassword 
 Outputs:
   Postdeployment:
     Description: See the deployment guide for postdeployment steps.
