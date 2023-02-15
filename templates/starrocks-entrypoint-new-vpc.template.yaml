@@ -16,16 +16,10 @@ Metadata:
       - NumberOfAZs
       - PublicSubnet1CIDR
       - PublicSubnet2CIDR
-      - PublicSubnet3CIDR
-      - PublicSubnet4CIDR
       - PrivateSubnet1ACIDR
       - PrivateSubnet2ACIDR
-      - PrivateSubnet3ACIDR
-      - PrivateSubnet4ACIDR
       - PrivateSubnet1BCIDR
       - PrivateSubnet2BCIDR
-      - PrivateSubnet3BCIDR
-      - PrivateSubnet4BCIDR
       - VPCCIDR
     - Label:
         default: Quick Start configuration
@@ -34,6 +28,7 @@ Metadata:
       - QSS3KeyPrefix
       - QSS3BucketRegion
       - RemoteAccessCIDR
+      - BastionEnabled
     - Label:
         default: EC2 configuration
       Parameters:
@@ -41,7 +36,7 @@ Metadata:
     - Label:
         default: Environment configuration
       Parameters:
-      - LatestAmiId
+      - SpecifiedAmiId
       - JDKDownLoadURL
       - StarRocksDownLoadURL
 
@@ -53,6 +48,8 @@ Metadata:
       - FeNodeInstanceType
       - BeNodeCount
       - BeNodeInstanceType
+      - RootPassword
+      - ConfirmRootPassword
 
     # Fe configuration
     - Label:
@@ -85,22 +82,10 @@ Metadata:
         default: Private subnet 2A CIDR
       PrivateSubnet2BCIDR:
         default: Private subnet 2B with dedicated network ACL CIDR
-      PrivateSubnet3ACIDR:
-        default: Private subnet 3A CIDR
-      PrivateSubnet3BCIDR:
-        default: Private subnet 3B with dedicated network ACL CIDR
-      PrivateSubnet4ACIDR:
-        default: Private subnet 4A CIDR
-      PrivateSubnet4BCIDR:
-        default: Private subnet 4B with dedicated network ACL CIDR
       PublicSubnet1CIDR:
         default: Public subnet 1 CIDR
       PublicSubnet2CIDR:
         default: Public subnet 2 CIDR
-      PublicSubnet3CIDR:
-        default: Public subnet 3 CIDR
-      PublicSubnet4CIDR:
-        default: Public subnet 4 CIDR
       KeyPairName:
         default: Key pair name
       QSS3BucketName:
@@ -111,8 +96,10 @@ Metadata:
         default: Quick Start S3 bucket Region
       RemoteAccessCIDR:
         default: Allowed bastion external access CIDR
-      LatestAmiId:
-        default: Latest Amazon Linux AMI
+      BastionEnabled:
+        default: Bastion enabled
+      SpecifiedAmiId:
+        Description: Specified AMI ID.
       JDKDownLoadURL:
         default: JDK 1.8 download URL
       StarRocksDownLoadURL:
@@ -125,6 +112,10 @@ Metadata:
         default: Number of StarRocks BE nodes
       BeNodeInstanceType:
         default: BE instance type
+      RootPassword:
+        default: Root Password of Starrock
+      ConfirmRootPassword:
+        default: Confirm Root Password
 
       # FE
       LogLevel:
@@ -150,8 +141,18 @@ Parameters:
   KeyPairName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Name of an existing public/private key pair, which allows you to securely connect to your instance after it launches. Alternatively, if you don't specify a key pair, you can use AWS Systems Manager Session Manager to connect to the instance.
-#    Type: String
- #   Default: ""
+  SpecifiedAmiId:
+    Description: Specified EC2 AMI ID.
+    Type: String
+    AllowedPattern: "(^$|^ami-[a-z0-9]+)"
+    ConstraintDescription: SpecifiedAmiId parameter must be in the form ami-xxxx. 
+    Default: ''
+  BastionEnabled:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
   PublicSubnet1CIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
@@ -163,18 +164,6 @@ Parameters:
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
     Default: 10.0.144.0/20
     Description: CIDR block for the public perimeter zone subnet 2, located in Availability Zone 2.
-    Type: String
-  PublicSubnet3CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.160.0/20
-    Description: CIDR block for the public perimeter zone subnet 3, located in Availability Zone 3.
-    Type: String
-  PublicSubnet4CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.176.0/20
-    Description: CIDR block for the public perimeter zone subnet 4, located in Availability Zone 4.
     Type: String
   PrivateSubnet1ACIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
@@ -199,30 +188,6 @@ Parameters:
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
     Default: 10.0.200.0/21
     Description: CIDR block for private subnet 2B with dedicated network ACL, located in Availability Zone 2.
-    Type: String
-  PrivateSubnet3ACIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.64.0/19
-    Description: CIDR block for private subnet 3A, located in Availability Zone 3.
-    Type: String
-  PrivateSubnet3BCIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.208.0/21
-    Description: CIDR block for private subnet 3B with dedicated network ACL, located in Availability Zone 3.
-    Type: String
-  PrivateSubnet4ACIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.96.0/19
-    Description: CIDR block for private subnet 4A, located in Availability Zone 4.
-    Type: String
-  PrivateSubnet4BCIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28.
-    Default: 10.0.216.0/21
-    Description: CIDR block for private subnet 4B with dedicated network ACL, located in Availability Zone 4.
     Type: String
   QSS3BucketName:
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
@@ -260,6 +225,7 @@ Parameters:
     Description: CIDR IP range that is permitted to access the instances. We recommend
       that you set this value to a trusted IP range.
     Type: String
+    Default: 10.0.0.0/16
   VPCCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16–28.
@@ -271,10 +237,6 @@ Parameters:
     AllowedValues: [ "2"]
     Default: "2"
     Description: Number of Availability Zones to use in the VPC. This must match the value entered for the AvailabilityZones parameter.
-  LatestAmiId:
-    Description: Latest supported and maintained Linux image provided by Amazon Web Services (AWS) for use on Amazon Elastic Compute Cloud (Amazon EC2).
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
   JDKDownLoadURL:
     Description: URL to download Java Development Kit (JDK) 1.8 tar.gz file.
     Type: String
@@ -282,8 +244,7 @@ Parameters:
   StarRocksDownLoadURL:
     Description: URL to download the StarRocks tar.gz file.
     Type: String
-#Default: https://www.starrocks.com/zh-CN/download/request-download/12
-    Default: https://download.starrocks.com/en-us/download/request-download/31/
+    Default:  https://releases.starrocks.io/starrocks/StarRocks-2.5.1.tar.gz
   FeNodeCount:
     Type: Number
     Default: 1
@@ -346,6 +307,20 @@ Parameters:
     Default: t2.micro
     Description: Amazon EC2 instance type for BE instances.
     Type: String
+  RootPassword:
+    NoEcho: true
+    Type: String
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: '^[a-zA-Z0-9]*$'
+    Description: Root Password, The minimum length that can be specified is 1, and the maximum length that can be specified is 32. The pattern allows lowercase and uppercase alphabetical characters and numerals.
+  ConfirmRootPassword:
+    NoEcho: true
+    Type: String
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: '^[a-zA-Z0-9]*$'
+    Description: Confirm Root Password.
 
   # Fe
   LogLevel:
@@ -394,6 +369,7 @@ Parameters:
     Description: Default path for syslog files.
     Default: beDefaultLogPath
 Conditions:
+  IsBastionEnabled: !Equals [!Ref "BastionEnabled", "true"]
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
   4BeNodesCondition: !Or
     - !Equals [!Ref 'BeNodeCount', '4']
@@ -403,14 +379,13 @@ Conditions:
     - !Equals [!Ref 'BeNodeCount', '5']
     - !Equals [!Ref 'BeNodeCount', '6']
   6BeNodesCondition: !Equals [!Ref 'BeNodeCount', '6']
-#Rules:
-#  KeyPairsNotEmpty:
-#    Assertions:
- #     - Assert: !Not
-  #        - 'Fn::EachMemberEquals':
- #             - 'Fn::RefAll': 'AWS::EC2::KeyPair::KeyName'
-  #            - ''
-  #      AssertDescription: AWS Key Pair Name parameters must not be empty
+Rules:
+  matchPasswords:
+    Assertions:
+      - Assert:
+          Fn::Equals:
+            - Ref: 'RootPassword'
+            - Ref: 'ConfirmRootPassword'
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -426,18 +401,13 @@ Resources:
         NumberOfAZs: !Ref 'NumberOfAZs'
         PublicSubnet1CIDR: !Ref 'PublicSubnet1CIDR'
         PublicSubnet2CIDR: !Ref 'PublicSubnet2CIDR'
-        PublicSubnet3CIDR: !Ref 'PublicSubnet3CIDR'
-        PublicSubnet4CIDR: !Ref 'PublicSubnet4CIDR'
         PrivateSubnet1ACIDR: !Ref PrivateSubnet1ACIDR
         PrivateSubnet1BCIDR: !Ref PrivateSubnet1BCIDR
         PrivateSubnet2ACIDR: !Ref PrivateSubnet2ACIDR
         PrivateSubnet2BCIDR: !Ref PrivateSubnet2BCIDR
-        PrivateSubnet3ACIDR: !Ref PrivateSubnet3ACIDR
-        PrivateSubnet3BCIDR: !Ref PrivateSubnet3BCIDR
-        PrivateSubnet4ACIDR: !Ref PrivateSubnet4ACIDR
-        PrivateSubnet4BCIDR: !Ref PrivateSubnet4BCIDR
         VPCCIDR: !Ref 'VPCCIDR'
   BastionStack:
+    Condition: IsBastionEnabled
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub
@@ -463,62 +433,35 @@ Resources:
       Parameters:
         VPCID: !GetAtt VPCStack.Outputs.VPCID
         VPCCIDR: !GetAtt VPCStack.Outputs.VPCCIDR
-        BastionSecurityGroupID: !GetAtt BastionStack.Outputs.BastionSecurityGroupID
-  BeStack:
+        BastionSecurityGroupID: !If [ IsBastionEnabled, !GetAtt BastionStack.Outputs.BastionSecurityGroupID, ""]
+  StarRocksClusterStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/starrocks_be.template.yaml'
-        - S3Region: !If [ UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion ]
-          S3Bucket: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
-      Parameters:
-        BeNodeCount: !Ref BeNodeCount
-        PrivateSubnetID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        StarRocksServerSecurityGroup: !GetAtt SecurityGroupStack.Outputs.StarRocksServerSecurityGroup
-        KeyPairName: !Ref KeyPairName
-        LatestAmiId: !Ref LatestAmiId
-        JDKDownLoadURL: !Ref JDKDownLoadURL
-        StarRocksDownLoadURL: !Ref StarRocksDownLoadURL
-        BeNodeInstanceType: !Ref BeNodeInstanceType
-        SysLogDir: !Ref SysLogDir
-        SysLogLevel: !Ref SysLogLevel
-        VolumeType: !Ref VolumeType
-        VolumeSize: !Ref VolumeSize
-  FeStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/starrocks_fe.template.yaml'
+        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/starrocks_cluster.template.yaml'
         - S3Region: !If [ UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion ]
           S3Bucket: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
       Parameters:
         PrivateSubnetID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         StarRocksServerSecurityGroup: !GetAtt SecurityGroupStack.Outputs.StarRocksServerSecurityGroup
         KeyPairName: !Ref KeyPairName
-        LatestAmiId: !Ref LatestAmiId
+        SpecifiedAmiId: !Ref SpecifiedAmiId
         JDKDownLoadURL: !Ref JDKDownLoadURL
         StarRocksDownLoadURL: !Ref StarRocksDownLoadURL
         FeNodeInstanceType: !Ref FeNodeInstanceType
         FeNodeCount: !Ref FeNodeCount
-        LogDir: !Ref LogDir
-        SysLogLevel: !Ref LogLevel
-        MetaDir: !Ref MetaDir
+        FeSysLogDir: !Ref LogDir
+        FeSysLogLevel: !Ref LogLevel
+        FeMetaDir: !Ref MetaDir
+        BeNodeCount: !Ref BeNodeCount
+        BeNodeInstanceType: !Ref BeNodeInstanceType
+        BeSysLogDir: !Ref SysLogDir
+        BeSysLogLevel: !Ref SysLogLevel
         VolumeType: !Ref VolumeType
-        BeInstancePrivateIp1: !GetAtt BeStack.Outputs.BeInstancePrivateIp1
-        BeInstancePrivateIp2: !GetAtt BeStack.Outputs.BeInstancePrivateIp2
-        BeInstancePrivateIp3: !GetAtt BeStack.Outputs.BeInstancePrivateIp3
-        BeInstancePrivateIp4: !If
-          - 4BeNodesCondition
-          - !GetAtt BeStack.Outputs.BeInstancePrivateIp4
-          - 0.0.0.0
-        BeInstancePrivateIp5: !If
-          - 5BeNodesCondition
-          - !GetAtt BeStack.Outputs.BeInstancePrivateIp5
-          - 0.0.0.0
-        BeInstancePrivateIp6: !If
-          - 6BeNodesCondition
-          - !GetAtt BeStack.Outputs.BeInstancePrivateIp6
-          - 0.0.0.0
+        VolumeSize: !Ref VolumeSize
+        QSS3BucketName: !If [ UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName ]
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        RootPassword: !Ref RootPassword 
 Outputs:
   Postdeployment:
     Description: See the deployment guide for postdeployment steps.

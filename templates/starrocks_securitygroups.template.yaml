@@ -34,7 +34,20 @@ Parameters:
   BastionSecurityGroupID:
     Description: The BastionSecurityGroupID range that is permitted to access.
     Type: String
+    Default: ""
+Conditions:
+  IsBastionSecurityGroupIDNotEmpty: !Not [!Equals [!Ref "BastionSecurityGroupID", ""]]
 Resources:
+  BastionSSHSecurityGroupIngress:
+    DependsOn: StarRocksServerSecurityGroup 
+    Condition: IsBastionSecurityGroupIDNotEmpty
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId: !Ref BastionSecurityGroupID
+      GroupId: !Ref StarRocksServerSecurityGroup
   StarRocksServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -73,10 +86,6 @@ Resources:
         FromPort: 9010
         ToPort: 9010
         CidrIp: !Ref VPCCIDR
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        SourceSecurityGroupId: !Ref BastionSecurityGroupID
       SecurityGroupEgress:
       - IpProtocol: tcp
         FromPort: 0

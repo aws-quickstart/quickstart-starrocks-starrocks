@@ -1,0 +1,1317 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy StarRocks-BE on Amazon Web Services (qs-1t73fgd48)
+Metadata:
+  QSLint:
+    Exclusions: [ W9002, W9003, W9004, W9006 ]
+  LICENSE: Apache License Version 2.0
+  QuickStartDocumentation:
+    EntrypointName: "Parameters for deploying Be Stack"
+    Order: "3"
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Network configuration
+      Parameters:
+      - PrivateSubnetID
+      - StarRocksServerSecurityGroup
+    - Label:
+        default: EC2 configuration
+      Parameters:
+      - KeyPairName
+    - Label:
+        default: Environment configuration
+      Parameters:
+      - SpecifiedAmiId
+      - LatestAmiId
+      - JDKDownLoadURL
+      - StarRocksDownLoadURL
+      - QSS3BucketName
+      - QSS3KeyPrefix 
+    - Label:
+        default: FE configuration
+      Parameters:
+      - FeNodeInstanceType
+      - FeNodeCount
+      - FeMetaDir
+      - FeSysLogDir
+      - FeSysLogLevel
+    - Label:
+        default: BE configuration
+      Parameters:
+      - BeNodeInstanceType
+      - BeNodeCount
+      - BeSysLogDir
+      - BeSysLogLevel
+      - VolumeType
+      - VolumeSize
+      - Iops
+    ParameterLabels:
+      PrivateSubnetID:
+        default: Private subnet ID
+      StarRocksServerSecurityGroup:
+        default: StarRocks Server Security Group
+      KeyPairName:
+        default: Key pair name
+      LatestAmiId:
+        default: Reference the latest Amazon Linux AMI in a CloudFormation template
+      SpecifiedAmiId:
+        Description: Specified AMI ID.
+      JDKDownLoadURL:
+        default: URL of download JDK 1.8
+      StarRocksDownLoadURL:
+        default: URL of StarRocks
+      FeNodeInstanceType:
+        default: Fe instance type
+      FeNodeCount:
+        default: Fe Node Count
+      FeSysLogDir:
+        default: Directory where FE logs are kept
+      FeSysLogLevel:
+        default: FE Sys Log Level
+      FeMetaDir:
+        default: Directory for FE metadata
+      BeNodeInstanceType:
+        default: Be instance type
+      BeNodeCount:
+        default: Be node count
+      BeSysLogDir:
+        default: Dir to save be sys log
+      BeSysLogLevel:
+        default: Sys Log Level
+      VolumeType:
+        default: Volume type of Be nodes
+      VolumeSize:
+        default: Volume size of Be nodes
+      Iops:
+        default: IOPS of Be nodes
+Parameters:
+  QSS3BucketName:
+    Default: aws-quickstart
+    Type: String
+  QSS3KeyPrefix:
+    Default: quickstart-starrocks-starrocks/
+    Type: String
+  PrivateSubnetID:
+    Description: The Private Subnet ID that you want to deploy Fe nodes.
+    Type: 'AWS::EC2::Subnet::Id'
+  StarRocksServerSecurityGroup:
+    Description: StarRocks Server Security Group.
+    Type: 'AWS::EC2::SecurityGroup::Id'
+  KeyPairName:
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Description: >-
+      Public/private key pairs allow you to securely connect to your instance
+      after it launches.
+  SpecifiedAmiId:
+    Description: Specified AMI ID.
+    Type: String 
+    Default: ''
+  LatestAmiId:
+    Description: Latest supported and maintained Linux image provided by Amazon Web Services (AWS) for use on Amazon Elastic Compute Cloud (Amazon EC2).
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  JDKDownLoadURL:
+    Description: URL to download Java Development Kit (JDK) 1.8 tar.gz file.
+    Type: String
+    Default: https://cloud-release.celerdata.com/thirdparty/java-se-8u322-b06.tar.gz
+  StarRocksDownLoadURL:
+    Description: URL to download the StarRocks tar.gz file.
+    Type: String
+    Default: https://releases.starrocks.io/starrocks/StarRocks-2.5.0-rc03.tar.gz
+  RootPassword:
+    Type: String
+    Description: Root Password.
+  FeNodeInstanceType:
+    Description: Amazon EC2 instance type for the fe nodes.
+    Type: String
+    Default: t2.small
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+  FeNodeCount:
+    Type: Number
+    Default: 1
+    Description: Number of StarRocks FE nodes to deploy (1 or 3).
+    AllowedValues:
+      - 1
+      - 3
+  FeSysLogDir:
+    Description: Dir to save fe log, please to fill in the absolute path
+    Type: String
+    Default: feDefaultLogPath
+  FeSysLogLevel:
+    Description: Starrock FE syslog level.
+    Type: String
+    Default: INFO
+    AllowedValues:
+      - INFO
+      - WARN
+      - ERROR
+      - FATAL
+  FeMetaDir:
+    Description: Absolute path to the metadata directory.
+    Type: String
+    Default: feDefaultMetaPath
+  BeNodeInstanceType:
+    Description: Amazon EC2 instance type for the be nodes.
+    Type: String
+    Default: t2.small
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+  BeNodeCount:
+    Type: Number
+    Default: 3
+    Description: Number of StarRocks Be
+    AllowedValues:
+      - 3
+      - 4
+      - 5
+      - 6
+  BeSysLogDir:
+    Description: 'Dir to save be log, please to fill in the absolute path'
+    Type: String
+    Default: beDefaultLogPath
+  BeSysLogLevel:
+    Description: 'Sys Log Level, please select from the drop-down menu'
+    Type: String
+    Default: INFO
+    AllowedValues:
+      - INFO
+      - WARN
+      - ERROR
+      - FATAL
+  VolumeType:
+    Type: String
+    Description: EBS volume type (data) to be attached to node in GBs [gp2,gp3,st1], one volume for data storage is mounted automatically by CloudFormation stack.
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - st1
+      - io1
+  VolumeSize:
+    Type: String
+    Description: EBS volume size (data) to be attached to node in GBs.
+    Default: 50
+  Iops:
+    Type: String
+    Description: IOPS of EBS volume when io1 type is chosen. Otherwise ignored.
+    Default: 1000
+Conditions:
+  UseIops:
+    Fn::Equals: [!Ref VolumeType,"io1"]
+  3NodesCondition: !Or
+    - !Equals [!Ref 'BeNodeCount', '3']
+    - !Equals [!Ref 'BeNodeCount', '4']
+    - !Equals [!Ref 'BeNodeCount', '5']
+    - !Equals [!Ref 'BeNodeCount', '6']
+  4NodesCondition: !Or
+    - !Equals [!Ref 'BeNodeCount', '4']
+    - !Equals [!Ref 'BeNodeCount', '5']
+    - !Equals [!Ref 'BeNodeCount', '6']
+  5NodesCondition: !Or
+    - !Equals [!Ref 'BeNodeCount', '5']
+    - !Equals [!Ref 'BeNodeCount', '6']
+  6NodesCondition: !Equals [!Ref 'BeNodeCount', '6']
+  3FeNodesCondition: !Equals [!Ref 'FeNodeCount', '3']
+  IsSpecifiedAmiIdNotEmpty: !Not [!Equals [!Ref "SpecifiedAmiId", ""]]
+Resources:
+  BeInstance1:
+    Condition: 3NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 1
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance1 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "jdk config done" >> /var/log/quickstart.log
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/log
+          ln -s /home/starrocks/log /opt/StarRocks/be/log
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+
+          cd /opt/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${BeSysLogDir} ${BeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_be.sh --daemon
+          echo -e $(date) "start be done" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance1 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT30M"
+  BeInstance2:
+    Condition: 3NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 2
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance2 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "jdk config done" >> /var/log/quickstart.log
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/log
+          ln -s /home/starrocks/log /opt/StarRocks/be/log
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+
+          cd /opt/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${BeSysLogDir} ${BeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_be.sh --daemon
+          echo -e $(date) "start be done" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance2 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT30M"
+  BeInstance3:
+    Condition: 3NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 3
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance3 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "jdk config done" >> /var/log/quickstart.log
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/log
+          ln -s /home/starrocks/log /opt/StarRocks/be/log
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+
+          cd /opt/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${BeSysLogDir} ${BeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_be.sh --daemon
+          echo -e $(date) "start be done" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance3 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT30M"
+  BeInstance4:
+    Condition: 4NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 4
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance4 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "jdk config done" >> /var/log/quickstart.log
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/log
+          ln -s /home/starrocks/log /opt/StarRocks/be/log
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+
+          cd /opt/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${BeSysLogDir} ${BeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_be.sh --daemon
+          echo -e $(date) "start be done" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance4 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT30M"
+  BeInstance5:
+    Condition: 5NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 5
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance5 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "jdk config done" >> /var/log/quickstart.log
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/log
+          ln -s /home/starrocks/log /opt/StarRocks/be/log
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+
+          cd /opt/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${BeSysLogDir} ${BeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_be.sh --daemon
+          echo -e $(date) "start be done" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance5 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT30M"
+  BeInstance6:
+    Condition: 6NodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install be instance replica 6
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref BeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdh
+        Ebs:
+          VolumeSize: !Ref VolumeSize
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: !Ref VolumeType
+          Iops: !If [UseIops,!Ref Iops,!Ref AWS::NoValue]
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource BeInstance6 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "jdk config done" >> /var/log/quickstart.log
+
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/log
+          ln -s /home/starrocks/log /opt/StarRocks/be/log
+
+          sudo mkfs.xfs /dev/xvdh
+          sudo mkdir -p /home/data
+          sudo mount /dev/xvdh /home/data
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+
+          cd /opt/StarRocks/be
+          echo "storage_root_path = /home/data" >> conf/be.conf
+          touch params.sh
+          chmod +x params.sh
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 != "beDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $1" conf/be.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $2" conf/be.conf' >> params.sh
+          bash params.sh ${BeSysLogDir} ${BeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_be.sh --daemon
+          echo -e $(date) "start be done" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BeInstance6 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT30M"
+  FeLeaderInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install fe leader instance
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref FeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2 
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource FeLeaderInstance --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "config jdk done" >> /var/log/quickstart.log
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+          
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/meta /home/starrocks/log /home/starrocks/temp_dir
+          ln -s /home/starrocks/meta /opt/StarRocks/fe/meta
+          ln -s /home/starrocks/log /opt/StarRocks/fe/log
+          ln -s /home/starrocks/temp_dir /opt/StarRocks/fe/temp_dir
+
+          cd /opt/StarRocks/fe
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 = "feDefaultMetaPath" ];then' >> params.sh
+          echo '    mkdir -p meta' >> params.sh
+          echo 'else' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# meta_dir/ c\meta_dir = $1" conf/fe.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'if [ $2 != "feDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $2' >> params.sh
+          echo '    sed -i "/^LOG_DIR/ c\LOG_DIR = $2" conf/fe.conf' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $2" conf/fe.conf' >> params.sh
+          echo '    sed -i "/^# audit_log_dir/ c\audit_log_dir = $2" conf/fe.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $3" conf/fe.conf' >> params.sh
+          chmod +x params.sh
+          bash params.sh ${FeMetaDir} ${FeSysLogDir} ${FeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_fe.sh --daemon
+          echo -e $(date) "start fe done" >> /var/log/quickstart.log 
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeLeaderInstance --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT60M"
+  FeFollowerInstance1:
+    Condition: 3FeNodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install fe follower instance
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref FeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2 
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource FeFollowerInstance1 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+          
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+          
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "config jdk done" >> /var/log/quickstart.log
+         
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          echo -e $(date) "mount done" >> /var/log/quickstart.log
+
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/meta /home/starrocks/log /home/starrocks/temp_dir
+          ln -s /home/starrocks/meta /opt/StarRocks/fe/meta
+          ln -s /home/starrocks/log /opt/StarRocks/fe/log
+          ln -s /home/starrocks/temp_dir /opt/StarRocks/fe/temp_dir
+
+          cd /opt/StarRocks/fe
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 = "feDefaultMetaPath" ];then' >> params.sh
+          echo '    mkdir -p meta' >> params.sh
+          echo 'else' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# meta_dir/ c\meta_dir = $1" conf/fe.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'if [ $2 != "feDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $2' >> params.sh
+          echo '    sed -i "/^LOG_DIR/ c\LOG_DIR = $2" conf/fe.conf' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $2" conf/fe.conf' >> params.sh
+          echo '    sed -i "/^# audit_log_dir/ c\audit_log_dir = $2" conf/fe.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $3" conf/fe.conf' >> params.sh
+          chmod +x params.sh
+          bash params.sh ${FeMetaDir} ${FeSysLogDir} ${FeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_fe.sh --helper ${FeLeaderInstance.PrivateIp}:9010 --daemon
+          echo -e $(date) "start fe done" >> /var/log/quickstart.log
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeFollowerInstance1 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT60M"
+  FeFollowerInstance2:
+    Condition: 3FeNodesCondition
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install fe follower instance
+    Properties:
+      KeyName: !Ref KeyPairName
+      ImageId: !If [IsSpecifiedAmiIdNotEmpty, !Ref SpecifiedAmiId, !Ref LatestAmiId]
+      InstanceType: !Ref FeNodeInstanceType
+      SubnetId: !Ref PrivateSubnetID
+      SecurityGroupIds:
+      - !Ref StarRocksServerSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvdt
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2 
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          echo -e $(date) "start" >> /var/log/quickstart.log
+          
+          /opt/aws/bin/cfn-init -v --stack '${AWS::StackName}' --resource FeFollowerInstance2 --region ${AWS::Region}
+          echo -e $(date) "cfn init done" >> /var/log/quickstart.log
+          
+          if [ ! -e /opt/java.tar.gz ]
+          then
+            wget ${JDKDownLoadURL} -O /opt/java.tar.gz
+          fi
+          echo -e $(date) "wget jdk done" >> /var/log/quickstart.log
+          
+          mkdir ./jdk && tar -zxvf /opt/java.tar.gz -C ./jdk --strip-components 1
+          mkdir /usr/java && mv jdk /usr/java
+          echo 'export JAVA_HOME=/usr/java/jdk' >> /etc/profile
+          echo 'export JRE_HOME=/usr/java/jdk/jre' >> /etc/profile
+          echo 'export CLASSPATH=.:/usr/java/jdk/lib:/usr/java/jdk/jre/lib:$CLASSPATH' >> /etc/profile
+          echo 'export JAVA_PATH=/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          echo 'export PATH=$PATH:/usr/java/jdk/bin:/usr/java/jdk/jre/bin' >> /etc/profile
+          source /etc/profile
+          rm -rf /opt/java.tar.gz
+          echo -e $(date) "config jdk done" >> /var/log/quickstart.log
+          
+          yum install MySQL-python.x86_64 -y
+          yum install mysql -y
+          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
+
+          sudo adduser starrocks
+          sudo usermod -G starrocks starrocks
+
+          sudo mkfs.xfs /dev/xvdt
+          sudo mount /dev/xvdt /home/starrocks
+          echo -e $(date) "mount disk done" >> /var/log/quickstart.log
+
+          if [ ! -d /opt/StarRocks ]; then
+            wget ${StarRocksDownLoadURL} -O /opt/starrocks.tar.gz
+            echo -e $(date) "wget starrocks done" >> /var/log/quickstart.log
+            mkdir /opt/StarRocks && tar -zxvf /opt/starrocks.tar.gz -C /opt/StarRocks --strip-components 1
+            rm -rf /opt/starrocks.tar.gz
+          fi
+          echo -e $(date) "decompress starrocks done" >> /var/log/quickstart.log
+
+          mkdir -p /home/starrocks/meta /home/starrocks/log /home/starrocks/temp_dir
+          ln -s /home/starrocks/meta /opt/StarRocks/fe/meta
+          ln -s /home/starrocks/log /opt/StarRocks/fe/log
+          ln -s /home/starrocks/temp_dir /opt/StarRocks/fe/temp_dir
+          
+          cd /opt/StarRocks/fe
+          echo '#!/bin/bash' >> params.sh
+          echo 'if [ $1 = "feDefaultMetaPath" ];then' >> params.sh
+          echo '    mkdir -p meta' >> params.sh
+          echo 'else' >> params.sh
+          echo '    mkdir -p $1' >> params.sh
+          echo '    sed -i "/^# meta_dir/ c\meta_dir = $1" conf/fe.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'if [ $2 != "feDefaultLogPath" ];then' >> params.sh
+          echo '    mkdir -p $2' >> params.sh
+          echo '    sed -i "/^LOG_DIR/ c\LOG_DIR = $2" conf/fe.conf' >> params.sh
+          echo '    sed -i "/^# sys_log_dir/ c\sys_log_dir = $2" conf/fe.conf' >> params.sh
+          echo '    sed -i "/^# audit_log_dir/ c\audit_log_dir = $2" conf/fe.conf' >> params.sh
+          echo 'fi' >> params.sh
+          echo 'sed -i "/^sys_log_level/ c\sys_log_level = $3" conf/fe.conf' >> params.sh
+          chmod +x params.sh
+          bash params.sh ${FeMetaDir} ${FeSysLogDir} ${FeSysLogLevel}
+
+          chown -R starrocks:starrocks /home/starrocks /opt/StarRocks
+
+          bin/start_fe.sh --helper ${FeLeaderInstance.PrivateIp}:9010 --daemon
+          echo -e $(date) "start fe done" >> /var/log/quickstart.log
+          
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource FeFollowerInstance2 --region ${AWS::Region}
+          echo -e $(date) "cfn signal done" >> /var/log/quickstart.log
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT60M"
+  ToolApiFunctionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Join 
+          - ''
+          - - 'arn:'
+            - !Ref 'AWS::Partition'
+            - ':iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - !Join 
+          - ''
+          - - 'arn:'
+            - !Ref 'AWS::Partition'
+            - ':iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'   
+  ToolApiFunction:
+    DependsOn: ToolApiFunctionRole
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt ToolApiFunctionRole.Arn
+      Timeout: 30
+      Code:
+        S3Bucket: !Sub '${QSS3BucketName}-${AWS::Region}'
+        S3Key: !Sub '${QSS3KeyPrefix}/functions/packages/deploy.zip'
+      VpcConfig:
+        SubnetIds: 
+          - !Ref PrivateSubnetID
+        SecurityGroupIds:
+          - !Ref StarRocksServerSecurityGroup
+  AddBE:
+    DependsOn: 
+      - ToolApiFunction
+    Type: 'Custom::AddBE'
+    Properties:
+      ServiceToken: !GetAtt ToolApiFunction.Arn
+      FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
+      RootPassword: ""
+      BeInstance1PrivateIp: !If [3NodesCondition, !GetAtt BeInstance1.PrivateIp, ""]
+      BeInstance2PrivateIp: !If [3NodesCondition, !GetAtt BeInstance2.PrivateIp, ""]
+      BeInstance3PrivateIp: !If [3NodesCondition, !GetAtt BeInstance3.PrivateIp, ""]
+      BeInstance4PrivateIp: !If [4NodesCondition, !GetAtt BeInstance4.PrivateIp, ""]
+      BeInstance5PrivateIp: !If [5NodesCondition, !GetAtt BeInstance5.PrivateIp, ""]
+      BeInstance6PrivateIp: !If [6NodesCondition, !GetAtt BeInstance6.PrivateIp, ""]
+  ChangeRootPassword:
+    DependsOn: 
+      - ToolApiFunction
+      - AddBE
+    Type: 'Custom::ChangeRootPassword'
+    Properties:
+      ServiceToken: !GetAtt ToolApiFunction.Arn
+      FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
+      RootPassword: !Ref RootPassword 
+  AddFeFollower:
+    Condition: 3FeNodesCondition
+    DependsOn: 
+      - ToolApiFunction
+      - ChangeRootPassword 
+    Type: 'Custom::AddFEFollower'
+    Properties:
+      ServiceToken: !GetAtt ToolApiFunction.Arn
+      FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
+      FeFollowerInstance1PrivateIp: !GetAtt FeFollowerInstance1.PrivateIp
+      FeFollowerInstance2PrivateIp: !GetAtt FeFollowerInstance2.PrivateIp
+      RootPassword: !Ref RootPassword 
+Outputs:
+  FeLeaderInstance:
+    Description: fe leader instance
+    Value:         
+      !Join 
+        - ''
+        - - !Ref FeLeaderInstance
+          - ' ['
+          - !GetAtt FeLeaderInstance.PrivateIp
+          - ']'
+  FeFollowerInstance1:
+    Condition: 3FeNodesCondition
+    Description: fe follower instance1
+    Value:         
+      !Join 
+        - ''
+        - - !Ref FeFollowerInstance1
+          - ' ['
+          - !GetAtt FeFollowerInstance1.PrivateIp
+          - ']'
+  FeFollowerInstance2:
+    Condition: 3FeNodesCondition
+    Description: fe follower instance2
+    Value:
+      !Join 
+        - ''
+        - - !Ref FeFollowerInstance2
+          - ' ['
+          - !GetAtt FeFollowerInstance2.PrivateIp
+          - ']'
+  BeInstance1:
+    Condition: 3NodesCondition
+    Description: be instance 1
+    Value:
+      !Join 
+        - ''
+        - - !Ref BeInstance1
+          - ' ['
+          - !GetAtt BeInstance1.PrivateIp
+          - ']'
+  BeInstance2:
+    Condition: 3NodesCondition
+    Description: be instance 2
+    Value:
+      !Join 
+        - ''
+        - - !Ref BeInstance2
+          - ' ['
+          - !GetAtt BeInstance2.PrivateIp
+          - ']'
+  BeInstance3:
+    Condition: 3NodesCondition
+    Description: be instance 3
+    Value:
+      !Join 
+        - ''
+        - - !Ref BeInstance3
+          - ' ['
+          - !GetAtt BeInstance3.PrivateIp
+          - ']'
+  BeInstance4:
+    Condition: 4NodesCondition
+    Description: be instance 4
+    Value:
+      !Join 
+        - ''
+        - - !Ref BeInstance4
+          - ' ['
+          - !GetAtt BeInstance4.PrivateIp
+          - ']'
+  BeInstance5:
+    Condition: 5NodesCondition
+    Description: be instance 5
+    Value:
+      !Join 
+        - ''
+        - - !Ref BeInstance5
+          - ' ['
+          - !GetAtt BeInstance5.PrivateIp
+          - ']'
+  BeInstance6:
+    Condition: 6NodesCondition
+    Description: be instance 6
+    Value:
+      !Join 
+        - ''
+        - - !Ref BeInstance6
+          - ' ['
+          - !GetAtt BeInstance6.PrivateIp
+          - ']'
