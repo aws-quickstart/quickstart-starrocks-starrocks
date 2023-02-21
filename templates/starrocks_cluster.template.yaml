@@ -126,11 +126,16 @@ Parameters:
     Type: String
     Default: t2.small
     AllowedValues:
-      - t2.nano
       - t2.micro
       - t2.small
       - t2.medium
       - t2.large
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
       - m4.large
       - m4.xlarge
       - m4.2xlarge
@@ -189,6 +194,12 @@ Parameters:
       - t2.small
       - t2.medium
       - t2.large
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
       - m4.large
       - m4.xlarge
       - m4.2xlarge
@@ -1183,7 +1194,7 @@ Resources:
       Role: !GetAtt ToolApiFunctionRole.Arn
       Timeout: 30
       Code:
-        S3Bucket: !Sub '${QSS3BucketName}-${AWS::Region}'
+        S3Bucket: !Ref QSS3BucketName
         S3Key: !Sub '${QSS3KeyPrefix}/functions/packages/deploy.zip'
       VpcConfig:
         SubnetIds: 
