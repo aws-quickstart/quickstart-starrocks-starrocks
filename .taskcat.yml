@@ -44,6 +44,8 @@ tests:
       VPCCIDR: 10.0.0.0/16
       QSS3BucketRegion: $[taskcat_current_region]
       KeyPairName: override
+      RootPassword: $[taskcat_genpass_16]
+      ConfirmRootPassword: $[taskcat_genpass_16]
     regions:
       - us-east-1
       - us-west-2
