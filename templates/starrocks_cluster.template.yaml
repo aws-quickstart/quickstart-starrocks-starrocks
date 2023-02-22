@@ -55,7 +55,7 @@ Metadata:
       LatestAmiId:
         default: Reference the latest Amazon Linux AMI in a CloudFormation template
       SpecifiedAmiId:
-        Description: Specified AMI ID.
+        default: (Optional)Specified AMI ID.
       JDKDownLoadURL:
         default: URL of download JDK 1.8
       StarRocksDownLoadURL:
@@ -119,6 +119,7 @@ Parameters:
     Type: String
     Default: https://releases.starrocks.io/starrocks/StarRocks-2.5.0-rc03.tar.gz
   RootPassword:
+    NoEcho: true
     Type: String
     Description: Root Password.
   FeNodeInstanceType:
@@ -334,10 +335,6 @@ Resources:
           rm -rf /opt/java.tar.gz
           echo -e $(date) "jdk config done" >> /var/log/quickstart.log
 
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
-
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
 
@@ -432,10 +429,6 @@ Resources:
           source /etc/profile
           rm -rf /opt/java.tar.gz
           echo -e $(date) "jdk config done" >> /var/log/quickstart.log
-
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
 
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
@@ -532,10 +525,6 @@ Resources:
           rm -rf /opt/java.tar.gz
           echo -e $(date) "jdk config done" >> /var/log/quickstart.log
 
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
-
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
 
@@ -630,10 +619,6 @@ Resources:
           source /etc/profile
           rm -rf /opt/java.tar.gz
           echo -e $(date) "jdk config done" >> /var/log/quickstart.log
-
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
 
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
@@ -730,10 +715,6 @@ Resources:
           rm -rf /opt/java.tar.gz
           echo -e $(date) "jdk config done" >> /var/log/quickstart.log
 
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
-
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
 
@@ -829,10 +810,6 @@ Resources:
           rm -rf /opt/java.tar.gz
           echo -e $(date) "jdk config done" >> /var/log/quickstart.log
 
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
-
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
 
@@ -917,9 +894,6 @@ Resources:
           source /etc/profile
           rm -rf /opt/java.tar.gz
           echo -e $(date) "config jdk done" >> /var/log/quickstart.log
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
 
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
@@ -1013,10 +987,6 @@ Resources:
           rm -rf /opt/java.tar.gz
           echo -e $(date) "config jdk done" >> /var/log/quickstart.log
          
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
-
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
 
@@ -1110,10 +1080,6 @@ Resources:
           rm -rf /opt/java.tar.gz
           echo -e $(date) "config jdk done" >> /var/log/quickstart.log
           
-          yum install MySQL-python.x86_64 -y
-          yum install mysql -y
-          echo -e $(date) "yum mysql done" >> /var/log/quickstart.log
-
           sudo adduser starrocks
           sudo usermod -G starrocks starrocks
 
@@ -1192,10 +1158,10 @@ Resources:
       Handler: index.handler
       Runtime: python3.9
       Role: !GetAtt ToolApiFunctionRole.Arn
-      Timeout: 30
+      Timeout: 300
       Code:
         S3Bucket: !Ref QSS3BucketName
-        S3Key: !Sub '${QSS3KeyPrefix}/functions/packages/deploy.zip'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/deploy.zip'
       VpcConfig:
         SubnetIds: 
           - !Ref PrivateSubnetID
@@ -1208,34 +1174,31 @@ Resources:
     Properties:
       ServiceToken: !GetAtt ToolApiFunction.Arn
       FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
-      RootPassword: ""
       BeInstance1PrivateIp: !If [3NodesCondition, !GetAtt BeInstance1.PrivateIp, ""]
       BeInstance2PrivateIp: !If [3NodesCondition, !GetAtt BeInstance2.PrivateIp, ""]
       BeInstance3PrivateIp: !If [3NodesCondition, !GetAtt BeInstance3.PrivateIp, ""]
       BeInstance4PrivateIp: !If [4NodesCondition, !GetAtt BeInstance4.PrivateIp, ""]
       BeInstance5PrivateIp: !If [5NodesCondition, !GetAtt BeInstance5.PrivateIp, ""]
       BeInstance6PrivateIp: !If [6NodesCondition, !GetAtt BeInstance6.PrivateIp, ""]
-  ChangeRootPassword:
-    DependsOn: 
-      - ToolApiFunction
-      - AddBE
-    Type: 'Custom::ChangeRootPassword'
-    Properties:
-      ServiceToken: !GetAtt ToolApiFunction.Arn
-      FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
-      RootPassword: !Ref RootPassword 
   AddFeFollower:
     Condition: 3FeNodesCondition
     DependsOn: 
       - ToolApiFunction
-      - ChangeRootPassword 
     Type: 'Custom::AddFEFollower'
     Properties:
       ServiceToken: !GetAtt ToolApiFunction.Arn
       FeLeaderInstancePrivateIp: !GetAtt FeLeaderInstance.PrivateIp
       FeFollowerInstance1PrivateIp: !GetAtt FeFollowerInstance1.PrivateIp
       FeFollowerInstance2PrivateIp: !GetAtt FeFollowerInstance2.PrivateIp
-      RootPassword: !Ref RootPassword 
+  ChangeRootPassword:
+    DependsOn: 
+      - ToolApiFunction
+      - AddBE 
+    Type: 'Custom::ChangeRootPassword'
+    Properties:
+      ServiceToken: !GetAtt ToolApiFunction.Arn
+      FeLeaderInstancePrivateIp: !If [3FeNodesCondition, !GetAtt AddFeFollower.FeLeaderInstancePrivateIp, !GetAtt FeLeaderInstance.PrivateIp]
+      RootPassword: !Ref RootPassword
 Outputs:
   FeLeaderInstance:
     Description: fe leader instance

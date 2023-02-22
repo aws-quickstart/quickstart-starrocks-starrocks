@@ -99,7 +99,7 @@ Metadata:
       BastionEnabled:
         default: Bastion enabled
       SpecifiedAmiId:
-        Description: Specified AMI ID.
+        default: (Optional)Specified AMI ID.
       JDKDownLoadURL:
         default: JDK 1.8 download URL
       StarRocksDownLoadURL:
@@ -113,9 +113,9 @@ Metadata:
       BeNodeInstanceType:
         default: BE instance type
       RootPassword:
-        default: Root Password of Starrock
+        default: (Required)Root Password of Starrock
       ConfirmRootPassword:
-        default: Confirm Root Password
+        default: (Required)Confirm Root Password
 
       # FE
       LogLevel:
@@ -344,14 +344,14 @@ Parameters:
   RootPassword:
     NoEcho: true
     Type: String
-    MinLength: 1
+    MinLength: 12
     MaxLength: 32
     AllowedPattern: '^[a-zA-Z0-9]*$'
-    Description: Root Password, The minimum length that can be specified is 1, and the maximum length that can be specified is 32. The pattern allows lowercase and uppercase alphabetical characters and numerals.
+    Description: Root Password, The minimum length that can be specified is 12, and the maximum length that can be specified is 32. The pattern allows lowercase and uppercase alphabetical characters and numerals.
   ConfirmRootPassword:
     NoEcho: true
     Type: String
-    MinLength: 1
+    MinLength: 12
     MaxLength: 32
     AllowedPattern: '^[a-zA-Z0-9]*$'
     Description: Confirm Root Password.
