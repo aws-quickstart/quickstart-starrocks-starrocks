@@ -98,11 +98,11 @@ Metadata:
       FeNodeCount:
         default: Number of StarRocks FE nodes
       FeNodeInstanceType:
-        default: FE instance type
+        default: StarRocks FE instance type
       BeNodeCount:
         default: Number of StarRocks BE nodes
       BeNodeInstanceType:
-        default: BE instance type
+        default: StarRocks BE instance type
       RootPassword:
         default: (Required)Root Password of Starrock
       ConfirmRootPassword:
@@ -302,14 +302,14 @@ Parameters:
   RootPassword:
     NoEcho: true
     Type: String
-    MinLength: 1
+    MinLength: 12
     MaxLength: 32
     AllowedPattern: '^[a-zA-Z0-9]*$'
-    Description: Root Password, The minimum length that can be specified is 1, and the maximum length that can be specified is 32. The pattern allows lowercase and uppercase alphabetical characters and numerals.
+    Description: Root Password, The minimum length that can be specified is 12, and the maximum length that can be specified is 32. The pattern allows lowercase and uppercase alphabetical characters and numerals.
   ConfirmRootPassword:
     NoEcho: true
     Type: String
-    MinLength: 1
+    MinLength: 12
     MaxLength: 32
     AllowedPattern: '^[a-zA-Z0-9]*$'
     Description: Confirm Root Password.

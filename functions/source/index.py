@@ -14,16 +14,15 @@ def handler(event, context):
     timer = threading.Timer((context.get_remaining_time_in_millis()
                         / 1000.00) - 0.5, timeout, args=[event, context])
     timer.start()
-    
-    try:   
+    responseData = {}
+    try:  
         if event['RequestType'] == 'Create':
             fe_leader_ip = event['ResourceProperties']['FeLeaderInstancePrivateIp'] 
-            root_password = event['ResourceProperties']['RootPassword']
-            password  = '' if event["ResourceType"] == "Custom::ChangeRootPassword" else root_password 
-            db = pymysql.connect(host=fe_leader_ip, user='root', password=password, port=9030)
+            db = pymysql.connect(host=fe_leader_ip, user='root', port=9030)
             cursor = db.cursor()
 
             if event["ResourceType"] == "Custom::ChangeRootPassword":
+                root_password = event['ResourceProperties']['RootPassword']
                 cursor.execute(f"SET PASSWORD for root = PASSWORD('{root_password}');")   
             if event["ResourceType"] == "Custom::AddBE":
                 for i in range(1, 7):
@@ -34,11 +33,12 @@ def handler(event, context):
                 for i in range(1, 3):
                     if event['ResourceProperties'].get("FeFollowerInstance" + str(i) + "PrivateIp", ""):
                         follower_ip = event['ResourceProperties']["FeFollowerInstance" + str(i) + "PrivateIp"]
-                        cursor.execute(f"ALTER SYSTEM ADD FOLLOWER '{follower_ip}:9010'")                        
+                        cursor.execute(f"ALTER SYSTEM ADD FOLLOWER '{follower_ip}:9010'")
+                responseData['FeLeaderInstancePrivateIp'] = fe_leader_ip                      
             db.close()
     except Exception as e:
         logging.error('Exception: %s' % e, exc_info=True)
         status = cfnresponse.FAILED
     finally:
         timer.cancel()
-        cfnresponse.send(event, context, status, {})
+        cfnresponse.send(event, context, status, responseData, None)
